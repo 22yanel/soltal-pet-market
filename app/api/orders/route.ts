@@ -13,27 +13,26 @@ export async function POST(request: Request) {
 
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json(
-      { error: "Faltan las variables de Supabase en Vercel" },
+      { error: "Faltan variables de Supabase en Vercel" },
       { status: 500 }
     );
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const { data, error } = await supabase
-    .from("orders")
-    .insert({
-      customer: body.customer,
-      items: body.items,
-      total: body.total,
-      status: "received",
-    })
-    .select()
-    .single();
+  const { error } = await supabase.from("orders").insert({
+    customer: body.customer,
+    items: body.items,
+    total: body.total,
+    status: "received",
+  });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, order: data });
+  return NextResponse.json({
+    ok: true,
+    message: "Pedido creado correctamente",
+  });
 }
