@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   ShoppingCart,
@@ -570,7 +571,7 @@ function Info({
   title,
   text,
 }: {
-  icon: React.ReactNode;
+ icon: ReactNode;
   title: string;
   text: string;
 }) {
