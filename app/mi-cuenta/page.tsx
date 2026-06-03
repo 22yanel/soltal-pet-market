@@ -540,7 +540,8 @@ export default function MyAccountPage() {
         </div>
 
       <a
-  href="https://soltal-pet-market-wwtr-la03wq9bg.vercel.app/"
+<a
+  href="/"
   className="mt-6 inline-block rounded-full bg-green-50 px-6 py-3 font-black text-green-800"
 >
   Volver a la tienda
