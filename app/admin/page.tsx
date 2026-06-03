@@ -11,6 +11,7 @@ import {
   X,
   LogOut,
   Save,
+  Upload,
 } from "lucide-react";
 
 type AdminProduct = {
@@ -90,6 +91,7 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -148,6 +150,47 @@ export default function AdminPage() {
 
   const logout = async () => {
     window.location.href = "/api/admin/logout";
+  };
+
+  const uploadImage = async (
+    file: File,
+    mode: "create" | "edit"
+  ) => {
+    if (!file) return;
+
+    setUploading(true);
+    setStatus("Subiendo imagen...");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/admin/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setStatus(result.error || "No se pudo subir la imagen.");
+      setUploading(false);
+      return;
+    }
+
+    if (mode === "create") {
+      setForm((current) => ({
+        ...current,
+        image: result.url,
+      }));
+    } else {
+      setEditForm((current) => ({
+        ...current,
+        image: result.url,
+      }));
+    }
+
+    setStatus("Imagen subida correctamente.");
+    setUploading(false);
   };
 
   const addProduct = async () => {
@@ -380,10 +423,11 @@ export default function AdminPage() {
                   onChange={(value) => setField("stock", value)}
                 />
 
-                <Input
-                  label="URL de imagen"
-                  value={form.image}
-                  onChange={(value) => setField("image", value)}
+                <ImageInput
+                  image={form.image}
+                  uploading={uploading}
+                  onUrlChange={(value) => setField("image", value)}
+                  onFileChange={(file) => uploadImage(file, "create")}
                 />
 
                 <Textarea
@@ -456,10 +500,11 @@ export default function AdminPage() {
                     onChange={(value) => setEditField("stock", value)}
                   />
 
-                  <Input
-                    label="URL de imagen"
-                    value={editForm.image}
-                    onChange={(value) => setEditField("image", value)}
+                  <ImageInput
+                    image={editForm.image}
+                    uploading={uploading}
+                    onUrlChange={(value) => setEditField("image", value)}
+                    onFileChange={(file) => uploadImage(file, "edit")}
                   />
 
                   <Textarea
@@ -667,6 +712,53 @@ function SelectCategory({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function ImageInput({
+  image,
+  uploading,
+  onUrlChange,
+  onFileChange,
+}: {
+  image: string;
+  uploading: boolean;
+  onUrlChange: (value: string) => void;
+  onFileChange: (file: File) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-black">Imagen del producto</label>
+
+      <input
+        value={image}
+        onChange={(event) => onUrlChange(event.target.value)}
+        placeholder="Pega una URL de imagen o sube una imagen"
+        className="w-full rounded-2xl border border-green-100 bg-white px-4 py-3 outline-none"
+      />
+
+      <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-green-50 px-4 py-3 font-black text-green-700 hover:bg-green-100">
+        <Upload size={18} />
+        {uploading ? "Subiendo imagen..." : "Subir imagen desde mi computadora"}
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) onFileChange(file);
+          }}
+        />
+      </label>
+
+      {image && (
+        <img
+          src={image}
+          alt="Vista previa"
+          className="mt-4 h-32 w-full rounded-2xl object-cover"
+        />
+      )}
     </div>
   );
 }
