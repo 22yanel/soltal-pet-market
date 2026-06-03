@@ -75,10 +75,13 @@ export default function MyAccountPage() {
   };
 
   const loadUser = async () => {
+    setLoading(true);
+
     const { data } = await supabase.auth.getUser();
 
     if (!data.user) {
       setUser(null);
+      setOrders([]);
       setLoading(false);
       return;
     }
@@ -137,7 +140,10 @@ export default function MyAccountPage() {
 
     const invoiceWindow = window.open("", "_blank");
 
-    if (!invoiceWindow) return;
+    if (!invoiceWindow) {
+      setStatus("No se pudo abrir la factura. Permite ventanas emergentes.");
+      return;
+    }
 
     invoiceWindow.document.write(`
       <!DOCTYPE html>
@@ -218,6 +224,10 @@ export default function MyAccountPage() {
             .box h3 {
               margin-top: 0;
               color: #15803d;
+            }
+
+            p {
+              margin: 6px 0;
             }
 
             table {
@@ -348,6 +358,7 @@ export default function MyAccountPage() {
                   <th>Subtotal</th>
                 </tr>
               </thead>
+
               <tbody>
                 ${productsRows}
               </tbody>
@@ -398,6 +409,13 @@ export default function MyAccountPage() {
           >
             Iniciar sesión
           </a>
+
+          <a
+            href="/"
+            className="ml-3 mt-6 inline-block rounded-full bg-green-50 px-6 py-3 font-black text-green-800"
+          >
+            Volver a la tienda
+          </a>
         </div>
       </main>
     );
@@ -447,9 +465,7 @@ export default function MyAccountPage() {
             </div>
 
             <div>
-              <p className="font-black uppercase text-green-700">
-                Pedidos
-              </p>
+              <p className="font-black uppercase text-green-700">Pedidos</p>
               <h2 className="text-3xl font-black">Mis pedidos</h2>
             </div>
           </div>
@@ -467,7 +483,8 @@ export default function MyAccountPage() {
               </p>
 
               <p className="mt-2 text-sm text-slate-500">
-                Los pedidos nuevos que hagas mientras estés logueado aparecerán aquí.
+                Los pedidos nuevos que hagas mientras estés logueado aparecerán
+                aquí.
               </p>
 
               <a
@@ -480,10 +497,7 @@ export default function MyAccountPage() {
           ) : (
             <div className="mt-6 space-y-5">
               {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="rounded-3xl bg-[#f7fbf5] p-6"
-                >
+                <div key={order.id} className="rounded-3xl bg-[#f7fbf5] p-6">
                   <div className="flex flex-col justify-between gap-4 md:flex-row">
                     <div>
                       <p className="font-black text-green-700">
@@ -539,13 +553,12 @@ export default function MyAccountPage() {
           )}
         </div>
 
-      <a
-<a
-  href="/"
-  className="mt-6 inline-block rounded-full bg-green-50 px-6 py-3 font-black text-green-800"
->
-  Volver a la tienda
-</a>
+        <a
+          href="/"
+          className="mt-6 inline-block rounded-full bg-green-50 px-6 py-3 font-black text-green-800"
+        >
+          Volver a la tienda
+        </a>
       </div>
     </main>
   );
