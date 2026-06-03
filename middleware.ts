@@ -8,7 +8,10 @@ export function middleware(request: NextRequest) {
 
   const isProductsApi = pathname.startsWith("/api/products");
 
-  if (!isAdminPage && !isProductsApi) {
+  const isAdminApi =
+    pathname.startsWith("/api/admin") && pathname !== "/api/admin/login";
+
+  if (!isAdminPage && !isProductsApi && !isAdminApi) {
     return NextResponse.next();
   }
 
@@ -21,11 +24,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isProductsApi) {
-    return NextResponse.json(
-      { error: "No autorizado." },
-      { status: 401 }
-    );
+  if (isProductsApi || isAdminApi) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const loginUrl = new URL("/admin/login", request.url);
@@ -33,5 +33,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/products/:path*"],
+  matcher: ["/admin/:path*", "/api/products/:path*", "/api/admin/:path*"],
 };
