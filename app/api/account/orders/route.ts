@@ -8,10 +8,7 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json(
-      { error: "No autorizado." },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const token = authHeader.replace("Bearer ", "");
@@ -20,10 +17,7 @@ export async function GET(request: Request) {
     await supabaseAdmin.auth.getUser(token);
 
   if (userError || !userData.user) {
-    return NextResponse.json(
-      { error: "Sesión inválida." },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
   }
 
   const { data: orders, error } = await supabaseAdmin
@@ -33,10 +27,7 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json(
