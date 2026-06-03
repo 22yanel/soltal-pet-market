@@ -43,6 +43,7 @@ function buildInvoiceEmail(order: any) {
           <h1 style="color:#15803d;font-size:28px;font-weight:900;margin:0;">
             SOLTAL PET MARKET
           </h1>
+
           <p style="margin:6px 0 0;color:#64748b;">
             Todo para tus animales en un solo lugar
           </p>
@@ -83,6 +84,7 @@ function buildInvoiceEmail(order: any) {
               <th style="text-align:left;background:#14532d;color:white;padding:12px;">Subtotal</th>
             </tr>
           </thead>
+
           <tbody>
             ${productsRows}
           </tbody>
@@ -139,14 +141,13 @@ async function sendInvoiceEmail(order: any) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-    const authHeader = request.headers.get("authorization");
+
+  const authHeader = request.headers.get("authorization");
   let loggedUser = null;
 
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.replace("Bearer ", "");
-
     const { data } = await supabaseAdmin.auth.getUser(token);
-
     loggedUser = data.user || null;
   }
 
@@ -188,13 +189,12 @@ export async function POST(request: Request) {
   }
 
   const orderPayload = {
-  customer: body.customer,
-  items: body.items,
-  total: Number(body.total),
-  status: "received",
-  user_id: loggedUser?.id || null,
-  user_email: loggedUser?.email || body.customer?.email || null,
-};
+    customer: body.customer,
+    items: body.items,
+    total: Number(body.total),
+    status: "received",
+    user_id: loggedUser?.id || null,
+    user_email: loggedUser?.email || body.customer?.email || null,
   };
 
   const { data: order, error: orderError } = await supabaseAdmin
