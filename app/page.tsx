@@ -67,6 +67,9 @@ export default function Home() {
   const [status, setStatus] = useState("");
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<number | null>(null);
+  const [lastOrderData, setLastOrderData] = useState<OrderStatusResult | null>(
+    null
+  );
 
   const [orderIdInput, setOrderIdInput] = useState("");
   const [orderPhoneInput, setOrderPhoneInput] = useState("");
@@ -181,26 +184,11 @@ export default function Home() {
   };
 
   const validateCheckout = () => {
-    if (cart.length === 0) {
-      return "Agrega productos al carrito antes de crear el pedido.";
-    }
-
-    if (!form.fullName.trim()) {
-      return "Escribe tu nombre completo.";
-    }
-
-    if (!form.phone.trim()) {
-      return "Escribe tu número de teléfono.";
-    }
-
-    if (!form.city.trim()) {
-      return "Escribe tu ciudad.";
-    }
-
-    if (!form.address.trim()) {
-      return "Escribe tu dirección manual.";
-    }
-
+    if (cart.length === 0) return "Agrega productos al carrito antes de crear el pedido.";
+    if (!form.fullName.trim()) return "Escribe tu nombre completo.";
+    if (!form.phone.trim()) return "Escribe tu número de teléfono.";
+    if (!form.city.trim()) return "Escribe tu ciudad.";
+    if (!form.address.trim()) return "Escribe tu dirección manual.";
     return "";
   };
 
@@ -215,6 +203,7 @@ export default function Home() {
     setCreatingOrder(true);
     setStatus("Creando pedido...");
     setLastOrderId(null);
+    setLastOrderData(null);
 
     try {
       const response = await fetch("/api/orders", {
@@ -237,7 +226,9 @@ export default function Home() {
       }
 
       const newOrderId = result.order?.id || null;
+
       setLastOrderId(newOrderId);
+      setLastOrderData(result.order || null);
 
       setStatus(
         newOrderId
@@ -298,6 +289,254 @@ export default function Home() {
     }
   };
 
+  const openInvoice = (order: OrderStatusResult | null) => {
+    if (!order) {
+      setStatus("No hay pedido disponible para generar factura.");
+      return;
+    }
+
+    const customer = order.customer || {};
+    const items = order.items || [];
+
+    const productsRows = items
+      .map(
+        (item) => `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>RD$${Number(item.price).toLocaleString("es-DO")}</td>
+            <td>RD$${Number(item.price * item.quantity).toLocaleString("es-DO")}</td>
+          </tr>
+        `
+      )
+      .join("");
+
+    const invoiceWindow = window.open("", "_blank");
+
+    if (!invoiceWindow) {
+      setStatus("No se pudo abrir la factura. Permite ventanas emergentes.");
+      return;
+    }
+
+    invoiceWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Factura Pedido #${order.id} - Soltal Pet Market</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              color: #0f172a;
+              margin: 0;
+              padding: 40px;
+              background: #f7fbf5;
+            }
+
+            .invoice {
+              max-width: 900px;
+              margin: auto;
+              background: white;
+              border-radius: 24px;
+              padding: 32px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            }
+
+            .header {
+              display: flex;
+              justify-content: space-between;
+              gap: 20px;
+              border-bottom: 3px solid #15803d;
+              padding-bottom: 20px;
+              margin-bottom: 24px;
+            }
+
+            .brand {
+              color: #15803d;
+              font-size: 28px;
+              font-weight: 900;
+              margin: 0;
+            }
+
+            .subtitle {
+              margin: 4px 0 0;
+              color: #64748b;
+            }
+
+            .invoice-number {
+              text-align: right;
+            }
+
+            .invoice-number h2 {
+              margin: 0;
+              font-size: 26px;
+            }
+
+            .status {
+              display: inline-block;
+              margin-top: 8px;
+              padding: 8px 14px;
+              border-radius: 999px;
+              background: #dcfce7;
+              color: #166534;
+              font-weight: 800;
+            }
+
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 24px;
+            }
+
+            .box {
+              background: #f7fbf5;
+              padding: 18px;
+              border-radius: 18px;
+            }
+
+            .box h3 {
+              margin-top: 0;
+              color: #15803d;
+            }
+
+            p {
+              margin: 6px 0;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+
+            th {
+              text-align: left;
+              background: #14532d;
+              color: white;
+              padding: 12px;
+            }
+
+            td {
+              padding: 12px;
+              border-bottom: 1px solid #e2e8f0;
+            }
+
+            .total {
+              margin-top: 24px;
+              text-align: right;
+              font-size: 28px;
+              font-weight: 900;
+              color: #15803d;
+            }
+
+            .footer {
+              margin-top: 30px;
+              color: #64748b;
+              font-size: 14px;
+              text-align: center;
+            }
+
+            .actions {
+              margin-top: 24px;
+              text-align: center;
+            }
+
+            button {
+              border: 0;
+              background: #15803d;
+              color: white;
+              padding: 14px 24px;
+              border-radius: 999px;
+              font-weight: 900;
+              cursor: pointer;
+            }
+
+            @media print {
+              body {
+                background: white;
+                padding: 0;
+              }
+
+              .invoice {
+                box-shadow: none;
+                border-radius: 0;
+              }
+
+              .actions {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="invoice">
+            <div class="header">
+              <div>
+                <h1 class="brand">SOLTAL PET MARKET</h1>
+                <p class="subtitle">Todo para tus animales en un solo lugar</p>
+              </div>
+
+              <div class="invoice-number">
+                <h2>Factura #${order.id}</h2>
+                <p>${new Date(order.created_at).toLocaleString("es-DO")}</p>
+                <span class="status">${statusLabels[order.status] || order.status}</span>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="box">
+                <h3>Datos del cliente</h3>
+                <p><strong>Nombre:</strong> ${customer.fullName || "No indicado"}</p>
+                <p><strong>Teléfono:</strong> ${customer.phone || "No indicado"}</p>
+                <p><strong>Correo:</strong> ${customer.email || "No indicado"}</p>
+                <p><strong>Ciudad:</strong> ${customer.city || "No indicado"}</p>
+              </div>
+
+              <div class="box">
+                <h3>Dirección de entrega</h3>
+                <p><strong>Sector:</strong> ${customer.sector || "No indicado"}</p>
+                <p><strong>Dirección:</strong> ${customer.address || "No indicado"}</p>
+                <p><strong>Referencia:</strong> ${customer.reference || "No indicado"}</p>
+                <p><strong>Google Maps:</strong> ${customer.mapsUrl || "No indicado"}</p>
+              </div>
+            </div>
+
+            <h3>Productos comprados</h3>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>Precio</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${productsRows}
+              </tbody>
+            </table>
+
+            <div class="total">
+              Total: RD$${Number(order.total).toLocaleString("es-DO")}
+            </div>
+
+            <div class="footer">
+              Gracias por comprar en Soltal Pet Market.
+            </div>
+
+            <div class="actions">
+              <button onclick="window.print()">Imprimir / Guardar como PDF</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    invoiceWindow.document.close();
+  };
+
   const downloadInvoice = () => {
     if (cart.length === 0) {
       setStatus("No hay productos para generar factura.");
@@ -306,7 +545,7 @@ export default function Home() {
 
     const content = [
       "Soltal Pet Market",
-      "Factura",
+      "Factura del carrito",
       "",
       ...cart.map(
         (item) =>
@@ -451,6 +690,15 @@ export default function Home() {
                 Tu número de pedido es{" "}
                 <span className="font-black">#{lastOrderId}</span>. Guárdalo
                 junto con tu teléfono para consultar el estado.
+
+                <div>
+                  <button
+                    onClick={() => openInvoice(lastOrderData)}
+                    className="mt-3 rounded-full bg-green-700 px-5 py-3 font-black text-white"
+                  >
+                    Ver factura del pedido
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -819,11 +1067,13 @@ export default function Home() {
                   <p className="font-black text-green-700">
                     Pedido #{orderStatusResult.id}
                   </p>
+
                   <h3 className="mt-1 text-2xl font-black">
                     Estado:{" "}
                     {statusLabels[orderStatusResult.status] ||
                       orderStatusResult.status}
                   </h3>
+
                   <p className="mt-1 text-sm text-slate-600">
                     Fecha:{" "}
                     {new Date(orderStatusResult.created_at).toLocaleString(
@@ -834,9 +1084,17 @@ export default function Home() {
 
                 <div className="rounded-2xl bg-white p-4">
                   <p className="text-sm font-bold text-slate-500">Total</p>
+
                   <p className="text-2xl font-black text-green-700">
                     RD${Number(orderStatusResult.total).toLocaleString("es-DO")}
                   </p>
+
+                  <button
+                    onClick={() => openInvoice(orderStatusResult)}
+                    className="mt-4 rounded-full bg-green-700 px-5 py-3 font-black text-white"
+                  >
+                    Ver factura / guardar PDF
+                  </button>
                 </div>
               </div>
 
@@ -872,12 +1130,17 @@ export default function Home() {
         <div className="rounded-[2rem] bg-white p-6">
           <h2 className="text-4xl font-black">Factura</h2>
 
+          <p className="mt-2 text-slate-600">
+            Para generar una factura completa, crea un pedido o consulta un
+            pedido existente y dale a “Ver factura”.
+          </p>
+
           <button
             onClick={downloadInvoice}
             className="mt-4 flex items-center gap-2 rounded-full bg-green-700 px-6 py-3 font-black text-white"
           >
             <Download size={18} />
-            Descargar factura
+            Descargar factura del carrito
           </button>
         </div>
       </section>
