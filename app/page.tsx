@@ -582,7 +582,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
       <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
           <button
             onClick={() => {
               setSelected(null);
@@ -595,16 +595,16 @@ export default function Home() {
               <PawPrint />
             </div>
 
-            <div className="text-left">
+            <div className="hidden text-left sm:block">
               <p className="text-xl font-black text-green-800">SOLTAL PET</p>
               <p className="font-black text-lime-600">MARKET</p>
             </div>
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <a
               href="/mi-cuenta"
-              className="hidden rounded-full bg-green-700 px-5 py-3 font-black text-white md:block"
+              className="rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
             >
               Mi cuenta
             </a>
@@ -618,10 +618,10 @@ export default function Home() {
 
             <a
               href="#carrito"
-              className="flex items-center gap-2 rounded-full bg-green-700 px-5 py-3 font-black text-white"
+              className="flex items-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
             >
               <ShoppingCart size={18} />
-              Ir al carrito
+              <span className="hidden sm:inline">Ir al carrito</span>
               {quantity > 0 && (
                 <span className="rounded-full bg-white px-2 text-green-700">
                   {quantity}
