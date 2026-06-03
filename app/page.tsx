@@ -599,6 +599,13 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             <a
+              href="/mi-cuenta"
+              className="hidden rounded-full bg-green-700 px-5 py-3 font-black text-white md:block"
+            >
+              Mi cuenta
+            </a>
+
+            <a
               href="#consultar-pedido"
               className="hidden rounded-full bg-green-50 px-5 py-3 font-black text-green-800 md:block"
             >
@@ -638,6 +645,13 @@ export default function Home() {
               className="rounded-full bg-green-700 px-7 py-4 font-black text-white"
             >
               Ver productos
+            </a>
+
+            <a
+              href="/mi-cuenta"
+              className="rounded-full bg-lime-400 px-7 py-4 font-black text-green-950"
+            >
+              Mi cuenta
             </a>
 
             <a
