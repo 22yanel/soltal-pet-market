@@ -221,20 +221,20 @@ export default function Home() {
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-const accessToken = sessionData.session?.access_token;
+      const accessToken = sessionData.session?.access_token;
 
-const response = await fetch("/api/orders", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-  },
-  body: JSON.stringify({
-    customer: form,
-    items: cart,
-    total,
-  }),
-});
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          customer: form,
+          items: cart,
+          total,
+        }),
+      });
 
       const result = await response.json();
 
