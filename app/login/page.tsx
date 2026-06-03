@@ -15,7 +15,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-     redirectTo: "https://soltal-pet-market-wwtr-la03wq9bg.vercel.app/auth/callback",
+     redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
