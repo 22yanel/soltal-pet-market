@@ -83,7 +83,9 @@ export default function AdminPage() {
     setLoading(true);
     setStatus("Cargando productos...");
 
-    const response = await fetch("/api/products");
+   const response = await fetch("/api/admin/orders", {
+  cache: "no-store",
+});
     const result = await response.json();
 
     if (!response.ok) {
