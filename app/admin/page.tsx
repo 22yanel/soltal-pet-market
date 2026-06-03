@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, RefreshCcw, Package, ShoppingBag } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  RefreshCcw,
+  Package,
+  ShoppingBag,
+  Pencil,
+  X,
+  LogOut,
+  Save,
+} from "lucide-react";
 
 type AdminProduct = {
   id: number;
@@ -76,6 +86,8 @@ export default function AdminPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -83,9 +95,10 @@ export default function AdminPage() {
     setLoading(true);
     setStatus("Cargando productos...");
 
-   const response = await fetch("/api/admin/orders", {
-  cache: "no-store",
-});
+    const response = await fetch("/api/products", {
+      cache: "no-store",
+    });
+
     const result = await response.json();
 
     if (!response.ok) {
@@ -100,25 +113,25 @@ export default function AdminPage() {
   };
 
   const loadOrders = async () => {
-  setLoading(true);
-  setStatus("Cargando pedidos...");
+    setLoading(true);
+    setStatus("Cargando pedidos...");
 
-  const response = await fetch("/api/admin/orders", {
-    cache: "no-store",
-  });
+    const response = await fetch("/api/admin/orders", {
+      cache: "no-store",
+    });
 
-  const result = await response.json();
+    const result = await response.json();
 
-  if (!response.ok) {
-    setStatus(result.error || "No se pudieron cargar los pedidos.");
+    if (!response.ok) {
+      setStatus(result.error || "No se pudieron cargar los pedidos.");
+      setLoading(false);
+      return;
+    }
+
+    setOrders(result.orders || []);
+    setStatus("Pedidos cargados.");
     setLoading(false);
-    return;
-  }
-
-  setOrders(result.orders || []);
-  setStatus("Pedidos cargados.");
-  setLoading(false);
-};
+  };
 
   useEffect(() => {
     loadProducts();
@@ -127,6 +140,14 @@ export default function AdminPage() {
 
   const setField = (field: keyof typeof emptyForm, value: string) => {
     setForm({ ...form, [field]: value });
+  };
+
+  const setEditField = (field: keyof typeof emptyForm, value: string) => {
+    setEditForm({ ...editForm, [field]: value });
+  };
+
+  const logout = async () => {
+    window.location.href = "/api/admin/logout";
   };
 
   const addProduct = async () => {
@@ -157,6 +178,50 @@ export default function AdminPage() {
     loadProducts();
   };
 
+  const startEditProduct = (product: AdminProduct) => {
+    setEditingProduct(product);
+    setEditForm({
+      name: product.name || "",
+      category: product.category || "Perros",
+      subCategory: product.sub_category || "Alimentos",
+      price: String(product.price || ""),
+      stock: String(product.stock || ""),
+      image: product.image || "",
+      description: product.description || "",
+    });
+  };
+
+  const updateProduct = async () => {
+    if (!editingProduct) return;
+
+    if (!editForm.name || !editForm.price) {
+      setStatus("El nombre y el precio son obligatorios.");
+      return;
+    }
+
+    setStatus("Actualizando producto...");
+
+    const response = await fetch(`/api/products/${editingProduct.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(editForm),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setStatus(result.error || "No se pudo actualizar el producto.");
+      return;
+    }
+
+    setEditingProduct(null);
+    setEditForm(emptyForm);
+    setStatus("Producto actualizado correctamente.");
+    loadProducts();
+  };
+
   const deleteProduct = async (id: number) => {
     const confirmed = confirm("¿Seguro que deseas eliminar este producto?");
     if (!confirmed) return;
@@ -178,48 +243,65 @@ export default function AdminPage() {
     loadProducts();
   };
 
- const updateOrderStatus = async (id: number, newStatus: string) => {
-  setStatus("Actualizando pedido...");
+  const updateOrderStatus = async (id: number, newStatus: string) => {
+    const previousOrders = orders;
 
-  const response = await fetch(`/api/admin/orders/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ status: newStatus }),
-  });
+    setOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        String(order.id) === String(id)
+          ? { ...order, status: newStatus }
+          : order
+      )
+    );
 
-  const result = await response.json();
+    setStatus("Actualizando pedido...");
 
-  if (!response.ok) {
-    setStatus(result.error || "No se pudo actualizar el pedido.");
-    return;
-  }
+    const response = await fetch(`/api/admin/orders/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
 
-  setOrders((currentOrders) =>
-    currentOrders.map((order) =>
-      order.id === id ? { ...order, status: newStatus } : order
-    )
-  );
+    const result = await response.json();
 
-  setStatus("Pedido actualizado.");
-};
+    if (!response.ok) {
+      setOrders(previousOrders);
+      setStatus(result.error || "No se pudo actualizar el pedido.");
+      return;
+    }
+
+    setStatus("Pedido actualizado.");
+  };
 
   return (
     <main className="min-h-screen bg-[#f7fbf5] p-6 text-slate-900">
       <div className="mx-auto max-w-7xl">
         <div className="rounded-[2rem] bg-white p-6 shadow-sm md:p-10">
-          <p className="font-black uppercase tracking-widest text-green-700">
-            Administrador
-          </p>
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+            <div>
+              <p className="font-black uppercase tracking-widest text-green-700">
+                Administrador
+              </p>
 
-          <h1 className="mt-2 text-4xl font-black">
-            Panel de Soltal Pet Market
-          </h1>
+              <h1 className="mt-2 text-4xl font-black">
+                Panel de Soltal Pet Market
+              </h1>
 
-          <p className="mt-2 text-slate-600">
-            Administra productos y revisa pedidos de la tienda.
-          </p>
+              <p className="mt-2 text-slate-600">
+                Administra productos y revisa pedidos de la tienda.
+              </p>
+            </div>
+
+            <button
+              onClick={logout}
+              className="flex items-center justify-center gap-2 rounded-full bg-red-50 px-5 py-3 font-black text-red-600 hover:bg-red-100"
+            >
+              <LogOut size={18} />
+              Cerrar sesión
+            </button>
+          </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <button
@@ -273,24 +355,10 @@ export default function AdminPage() {
                   onChange={(value) => setField("name", value)}
                 />
 
-                <div>
-                  <label className="mb-2 block text-sm font-black">
-                    Categoría
-                  </label>
-                  <select
-                    value={form.category}
-                    onChange={(event) =>
-                      setField("category", event.target.value)
-                    }
-                    className="w-full rounded-2xl border border-green-100 bg-white px-4 py-3 outline-none"
-                  >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SelectCategory
+                  value={form.category}
+                  onChange={(value) => setField("category", value)}
+                />
 
                 <Input
                   label="Subcategoría"
@@ -318,20 +386,11 @@ export default function AdminPage() {
                   onChange={(value) => setField("image", value)}
                 />
 
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-black">
-                    Descripción
-                  </label>
-                  <textarea
-                    value={form.description}
-                    onChange={(event) =>
-                      setField("description", event.target.value)
-                    }
-                    rows={3}
-                    placeholder="Descripción del producto"
-                    className="w-full rounded-2xl border border-green-100 bg-white px-4 py-3 outline-none"
-                  />
-                </div>
+                <Textarea
+                  label="Descripción"
+                  value={form.description}
+                  onChange={(value) => setField("description", value)}
+                />
 
                 <div className="md:col-span-2">
                   <button
@@ -345,8 +404,85 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {editingProduct && (
+              <div className="mt-8 rounded-[2rem] border-2 border-green-200 bg-white p-6 shadow-sm md:p-10">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-black uppercase tracking-widest text-green-700">
+                      Editando producto
+                    </p>
+                    <h2 className="mt-1 text-2xl font-black">
+                      {editingProduct.name}
+                    </h2>
+                  </div>
+
+                  <button
+                    onClick={() => setEditingProduct(null)}
+                    className="rounded-full bg-red-50 p-3 text-red-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="mt-6 grid gap-4 rounded-3xl bg-[#f7fbf5] p-5 md:grid-cols-2">
+                  <Input
+                    label="Nombre del producto"
+                    value={editForm.name}
+                    onChange={(value) => setEditField("name", value)}
+                  />
+
+                  <SelectCategory
+                    value={editForm.category}
+                    onChange={(value) => setEditField("category", value)}
+                  />
+
+                  <Input
+                    label="Subcategoría"
+                    value={editForm.subCategory}
+                    onChange={(value) => setEditField("subCategory", value)}
+                  />
+
+                  <Input
+                    label="Precio"
+                    type="number"
+                    value={editForm.price}
+                    onChange={(value) => setEditField("price", value)}
+                  />
+
+                  <Input
+                    label="Stock"
+                    type="number"
+                    value={editForm.stock}
+                    onChange={(value) => setEditField("stock", value)}
+                  />
+
+                  <Input
+                    label="URL de imagen"
+                    value={editForm.image}
+                    onChange={(value) => setEditField("image", value)}
+                  />
+
+                  <Textarea
+                    label="Descripción"
+                    value={editForm.description}
+                    onChange={(value) => setEditField("description", value)}
+                  />
+
+                  <div className="md:col-span-2">
+                    <button
+                      onClick={updateProduct}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-4 font-black text-white hover:bg-green-800"
+                    >
+                      <Save size={20} />
+                      Guardar cambios
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-8 overflow-hidden rounded-[2rem] bg-white shadow-sm">
-              <div className="grid grid-cols-[80px_1fr_140px_120px_120px] gap-4 border-b border-green-100 bg-green-950 px-5 py-4 text-sm font-black text-white">
+              <div className="grid grid-cols-[80px_1fr_140px_120px_220px] gap-4 border-b border-green-100 bg-green-950 px-5 py-4 text-sm font-black text-white">
                 <span>Imagen</span>
                 <span>Producto</span>
                 <span>Categoría</span>
@@ -366,7 +502,7 @@ export default function AdminPage() {
                 products.map((product) => (
                   <div
                     key={product.id}
-                    className="grid grid-cols-[80px_1fr_140px_120px_120px] items-center gap-4 border-b border-green-50 px-5 py-4 text-sm"
+                    className="grid grid-cols-[80px_1fr_140px_120px_220px] items-center gap-4 border-b border-green-50 px-5 py-4 text-sm"
                   >
                     <img
                       src={product.image}
@@ -390,13 +526,23 @@ export default function AdminPage() {
                       RD${Number(product.price).toLocaleString("es-DO")}
                     </span>
 
-                    <button
-                      onClick={() => deleteProduct(product.id)}
-                      className="flex items-center justify-center gap-2 rounded-full bg-red-50 px-4 py-2 font-black text-red-600"
-                    >
-                      <Trash2 size={16} />
-                      Eliminar
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEditProduct(product)}
+                        className="flex items-center justify-center gap-2 rounded-full bg-green-50 px-4 py-2 font-black text-green-700"
+                      >
+                        <Pencil size={16} />
+                        Editar
+                      </button>
+
+                      <button
+                        onClick={() => deleteProduct(product.id)}
+                        className="flex items-center justify-center gap-2 rounded-full bg-red-50 px-4 py-2 font-black text-red-600"
+                      >
+                        <Trash2 size={16} />
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -500,6 +646,31 @@ export default function AdminPage() {
   );
 }
 
+function SelectCategory({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-black">Categoría</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-green-100 bg-white px-4 py-3 outline-none"
+      >
+        {categories.map((category) => (
+          <option key={category} value={category}>
+            {category}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function Input({
   label,
   value,
@@ -518,6 +689,29 @@ function Input({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        placeholder={label}
+        className="w-full rounded-2xl border border-green-100 bg-white px-4 py-3 outline-none"
+      />
+    </div>
+  );
+}
+
+function Textarea({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="md:col-span-2">
+      <label className="mb-2 block text-sm font-black">{label}</label>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={3}
         placeholder={label}
         className="w-full rounded-2xl border border-green-100 bg-white px-4 py-3 outline-none"
       />
