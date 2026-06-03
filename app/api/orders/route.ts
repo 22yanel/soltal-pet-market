@@ -1,38 +1,102 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+type OrderItem = {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+};
 
 export async function POST(request: Request) {
   const body = await request.json();
 
   if (!body?.customer || !Array.isArray(body?.items)) {
-    return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+    return NextResponse.json({ error: "Datos incompletos." }, { status: 400 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
+  if (body.items.length === 0) {
     return NextResponse.json(
-      { error: "Faltan variables de Supabase en Vercel" },
+      { error: "El carrito está vacío." },
+      { status: 400 }
+    );
+  }
+
+  const items: OrderItem[] = body.items;
+
+  for (const item of items) {
+    const { data: product, error } = await supabaseAdmin
+      .from("products")
+      .select("id, name, stock")
+      .eq("id", item.id)
+      .single();
+
+    if (error || !product) {
+      return NextResponse.json(
+        { error: `No se encontró el producto: ${item.name}` },
+        { status: 400 }
+      );
+    }
+
+    if (Number(product.stock) < Number(item.quantity)) {
+      return NextResponse.json(
+        {
+          error: `No hay stock suficiente para ${product.name}. Stock disponible: ${product.stock}`,
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  const orderPayload = {
+    customer: body.customer,
+    items: body.items,
+    total: Number(body.total),
+    status: "received",
+  };
+
+  const { data: order, error: orderError } = await supabaseAdmin
+    .from("orders")
+    .insert(orderPayload)
+    .select()
+    .single();
+
+  if (orderError) {
+    return NextResponse.json(
+      { error: orderError.message },
       { status: 500 }
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  for (const item of items) {
+    const { data: product } = await supabaseAdmin
+      .from("products")
+      .select("stock")
+      .eq("id", item.id)
+      .single();
 
-  const { error } = await supabase.from("orders").insert({
-    customer: body.customer,
-    items: body.items,
-    total: body.total,
-    status: "received",
-  });
+    const currentStock = Number(product?.stock || 0);
+    const newStock = Math.max(0, currentStock - Number(item.quantity));
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    await supabaseAdmin
+      .from("products")
+      .update({ stock: newStock })
+      .eq("id", item.id);
   }
 
-  return NextResponse.json({
-    ok: true,
-    message: "Pedido creado correctamente",
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      message: "Pedido creado correctamente y stock actualizado.",
+      order,
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    }
+  );
 }
