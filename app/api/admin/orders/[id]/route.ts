@@ -22,16 +22,20 @@ export async function PATCH(
     );
   }
 
-  const { data, error } = await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("orders")
     .update({ status: body.status })
-    .eq("id", params.id)
-    .select()
-    .single();
+    .eq("id", Number(params.id));
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 
-  return NextResponse.json({ order: data });
+  return NextResponse.json({
+    ok: true,
+    status: body.status,
+  });
 }
