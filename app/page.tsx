@@ -10,7 +10,6 @@ import {
   CreditCard,
   Truck,
   ShieldCheck,
-  Download,
   PackageSearch,
 } from "lucide-react";
 import { categories, type Product } from "@/data/products";
@@ -184,11 +183,26 @@ export default function Home() {
   };
 
   const validateCheckout = () => {
-    if (cart.length === 0) return "Agrega productos al carrito antes de crear el pedido.";
-    if (!form.fullName.trim()) return "Escribe tu nombre completo.";
-    if (!form.phone.trim()) return "Escribe tu número de teléfono.";
-    if (!form.city.trim()) return "Escribe tu ciudad.";
-    if (!form.address.trim()) return "Escribe tu dirección manual.";
+    if (cart.length === 0) {
+      return "Agrega productos al carrito antes de crear el pedido.";
+    }
+
+    if (!form.fullName.trim()) {
+      return "Escribe tu nombre completo.";
+    }
+
+    if (!form.phone.trim()) {
+      return "Escribe tu número de teléfono.";
+    }
+
+    if (!form.city.trim()) {
+      return "Escribe tu ciudad.";
+    }
+
+    if (!form.address.trim()) {
+      return "Escribe tu dirección manual.";
+    }
+
     return "";
   };
 
@@ -305,7 +319,9 @@ export default function Home() {
             <td>${item.name}</td>
             <td>${item.quantity}</td>
             <td>RD$${Number(item.price).toLocaleString("es-DO")}</td>
-            <td>RD$${Number(item.price * item.quantity).toLocaleString("es-DO")}</td>
+            <td>RD$${Number(item.price * item.quantity).toLocaleString(
+              "es-DO"
+            )}</td>
           </tr>
         `
       )
@@ -480,25 +496,43 @@ export default function Home() {
               <div class="invoice-number">
                 <h2>Factura #${order.id}</h2>
                 <p>${new Date(order.created_at).toLocaleString("es-DO")}</p>
-                <span class="status">${statusLabels[order.status] || order.status}</span>
+                <span class="status">${
+                  statusLabels[order.status] || order.status
+                }</span>
               </div>
             </div>
 
             <div class="grid">
               <div class="box">
                 <h3>Datos del cliente</h3>
-                <p><strong>Nombre:</strong> ${customer.fullName || "No indicado"}</p>
-                <p><strong>Teléfono:</strong> ${customer.phone || "No indicado"}</p>
-                <p><strong>Correo:</strong> ${customer.email || "No indicado"}</p>
-                <p><strong>Ciudad:</strong> ${customer.city || "No indicado"}</p>
+                <p><strong>Nombre:</strong> ${
+                  customer.fullName || "No indicado"
+                }</p>
+                <p><strong>Teléfono:</strong> ${
+                  customer.phone || "No indicado"
+                }</p>
+                <p><strong>Correo:</strong> ${
+                  customer.email || "No indicado"
+                }</p>
+                <p><strong>Ciudad:</strong> ${
+                  customer.city || "No indicado"
+                }</p>
               </div>
 
               <div class="box">
                 <h3>Dirección de entrega</h3>
-                <p><strong>Sector:</strong> ${customer.sector || "No indicado"}</p>
-                <p><strong>Dirección:</strong> ${customer.address || "No indicado"}</p>
-                <p><strong>Referencia:</strong> ${customer.reference || "No indicado"}</p>
-                <p><strong>Google Maps:</strong> ${customer.mapsUrl || "No indicado"}</p>
+                <p><strong>Sector:</strong> ${
+                  customer.sector || "No indicado"
+                }</p>
+                <p><strong>Dirección:</strong> ${
+                  customer.address || "No indicado"
+                }</p>
+                <p><strong>Referencia:</strong> ${
+                  customer.reference || "No indicado"
+                }</p>
+                <p><strong>Google Maps:</strong> ${
+                  customer.mapsUrl || "No indicado"
+                }</p>
               </div>
             </div>
 
@@ -535,37 +569,6 @@ export default function Home() {
     `);
 
     invoiceWindow.document.close();
-  };
-
-  const downloadInvoice = () => {
-    if (cart.length === 0) {
-      setStatus("No hay productos para generar factura.");
-      return;
-    }
-
-    const content = [
-      "Soltal Pet Market",
-      "Factura del carrito",
-      "",
-      ...cart.map(
-        (item) =>
-          `${item.name} x${item.quantity} - RD${(
-            item.price * item.quantity
-          ).toLocaleString("es-DO")}`
-      ),
-      "",
-      `Total: RD${total.toLocaleString("es-DO")}`,
-    ].join("\n");
-
-    const blob = new Blob([content], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = "factura-soltal-pet-market.pdf";
-    link.click();
-
-    URL.revokeObjectURL(url);
   };
 
   const setField = (field: keyof OrderForm, value: string) => {
@@ -1123,25 +1126,6 @@ export default function Home() {
               </div>
             </div>
           )}
-        </div>
-      </section>
-
-      <section id="factura" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="rounded-[2rem] bg-white p-6">
-          <h2 className="text-4xl font-black">Factura</h2>
-
-          <p className="mt-2 text-slate-600">
-            Para generar una factura completa, crea un pedido o consulta un
-            pedido existente y dale a “Ver factura”.
-          </p>
-
-          <button
-            onClick={downloadInvoice}
-            className="mt-4 flex items-center gap-2 rounded-full bg-green-700 px-6 py-3 font-black text-white"
-          >
-            <Download size={18} />
-            Descargar factura del carrito
-          </button>
         </div>
       </section>
     </main>
