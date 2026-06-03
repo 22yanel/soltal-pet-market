@@ -139,6 +139,16 @@ async function sendInvoiceEmail(order: any) {
 
 export async function POST(request: Request) {
   const body = await request.json();
+    const authHeader = request.headers.get("authorization");
+  let loggedUser = null;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "");
+
+    const { data } = await supabaseAdmin.auth.getUser(token);
+
+    loggedUser = data.user || null;
+  }
 
   if (!body?.customer || !Array.isArray(body?.items)) {
     return NextResponse.json({ error: "Datos incompletos." }, { status: 400 });
@@ -178,10 +188,13 @@ export async function POST(request: Request) {
   }
 
   const orderPayload = {
-    customer: body.customer,
-    items: body.items,
-    total: Number(body.total),
-    status: "received",
+  customer: body.customer,
+  items: body.items,
+  total: Number(body.total),
+  status: "received",
+  user_id: loggedUser?.id || null,
+  user_email: loggedUser?.email || body.customer?.email || null,
+};
   };
 
   const { data: order, error: orderError } = await supabaseAdmin
