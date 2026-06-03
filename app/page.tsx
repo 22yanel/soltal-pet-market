@@ -47,6 +47,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [form, setForm] = useState<OrderForm>(emptyForm);
   const [status, setStatus] = useState("");
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -57,6 +58,7 @@ export default function Home() {
 
       if (error) {
         console.error("Error cargando productos:", error.message);
+        setStatus("No se pudieron cargar los productos.");
         return;
       }
 
@@ -91,7 +93,9 @@ export default function Home() {
     const text = search.toLowerCase().trim();
 
     return productsList.filter((product) => {
-      const matchCategory = category === "Todos" || product.category === category;
+      const matchCategory =
+        category === "Todos" || product.category === category;
+
       const matchSearch =
         !text ||
         [product.name, product.category, product.subCategory].some((value) =>
@@ -103,10 +107,20 @@ export default function Home() {
   }, [category, search, productsList]);
 
   const addToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      setStatus("Este producto está agotado.");
+      return;
+    }
+
     setCart((items) => {
       const found = items.find((item) => item.id === product.id);
 
       if (found) {
+        if (found.quantity >= product.stock) {
+          setStatus("No puedes agregar más unidades que el stock disponible.");
+          return items;
+        }
+
         return items.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
@@ -116,37 +130,101 @@ export default function Home() {
 
       return [...items, { ...product, quantity: 1 }];
     });
+
+    setStatus("Producto agregado al carrito.");
+  };
+
+  const removeFromCart = (id: number) => {
+    setCart((items) => items.filter((item) => item.id !== id));
+    setStatus("Producto eliminado del carrito.");
+  };
+
+  const decreaseQuantity = (id: number) => {
+    setCart((items) =>
+      items.map((item) =>
+        item.id === id
+          ? { ...item, quantity: Math.max(1, item.quantity - 1) }
+          : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setStatus("Carrito vaciado.");
+  };
+
+  const validateCheckout = () => {
+    if (cart.length === 0) {
+      return "Agrega productos al carrito antes de crear el pedido.";
+    }
+
+    if (!form.fullName.trim()) {
+      return "Escribe tu nombre completo.";
+    }
+
+    if (!form.phone.trim()) {
+      return "Escribe tu número de teléfono.";
+    }
+
+    if (!form.city.trim()) {
+      return "Escribe tu ciudad.";
+    }
+
+    if (!form.address.trim()) {
+      return "Escribe tu dirección manual.";
+    }
+
+    return "";
   };
 
   const createOrder = async () => {
-    if (cart.length === 0) {
-      setStatus("Agrega productos al carrito antes de crear el pedido.");
+    const validationError = validateCheckout();
+
+    if (validationError) {
+      setStatus(validationError);
       return;
     }
 
+    setCreatingOrder(true);
     setStatus("Creando pedido...");
 
-    const response = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customer: form,
-        items: cart,
-        total,
-      }),
-    });
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: form,
+          items: cart,
+          total,
+        }),
+      });
 
-    if (response.ok) {
-      setStatus("Pedido creado. Falta conectar pasarela de pago.");
-      return;
+      const result = await response.json();
+
+      if (!response.ok) {
+        setStatus(result.error || "No se pudo crear el pedido.");
+        return;
+      }
+
+      setStatus("Pedido creado correctamente. Falta conectar pasarela de pago.");
+      setCart([]);
+      setForm(emptyForm);
+    } catch (error) {
+      setStatus("Ocurrió un error creando el pedido. Intenta de nuevo.");
+    } finally {
+      setCreatingOrder(false);
     }
-
-    setStatus("No se pudo crear el pedido.");
   };
 
   const downloadInvoice = () => {
+    if (cart.length === 0) {
+      setStatus("No hay productos para generar factura.");
+      return;
+    }
+
     const content = [
       "Soltal Pet Market",
       "Factura",
@@ -275,6 +353,14 @@ export default function Home() {
         />
       </section>
 
+      {status && (
+        <section className="mx-auto max-w-7xl px-4">
+          <div className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-700 shadow-sm">
+            {status}
+          </div>
+        </section>
+      )}
+
       <section id="productos" className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -285,6 +371,7 @@ export default function Home() {
           <div className="relative max-w-md rounded-full bg-white px-5 py-3 shadow-sm">
             <div className="flex items-center gap-3">
               <Search size={18} />
+
               <input
                 value={search}
                 onFocus={() => setShowSuggestions(true)}
@@ -374,13 +461,20 @@ export default function Home() {
                   RD${selected.price.toLocaleString("es-DO")}
                 </p>
 
-                <p className="mt-3 font-bold">Stock: {selected.stock}</p>
+                <p className="mt-3 font-bold">
+                  Stock: {selected.stock > 0 ? selected.stock : "Agotado"}
+                </p>
 
                 <button
                   onClick={() => addToCart(selected)}
-                  className="mt-6 rounded-2xl bg-green-700 px-8 py-4 font-black text-white"
+                  disabled={selected.stock <= 0}
+                  className={`mt-6 rounded-2xl px-8 py-4 font-black ${
+                    selected.stock <= 0
+                      ? "cursor-not-allowed bg-slate-300 text-slate-600"
+                      : "bg-green-700 text-white hover:bg-green-800"
+                  }`}
                 >
-                  Agregar al carrito
+                  {selected.stock <= 0 ? "Agotado" : "Agregar al carrito"}
                 </button>
               </div>
             </div>
@@ -401,7 +495,18 @@ export default function Home() {
 
       <section id="carrito" className="mx-auto max-w-7xl px-4 py-12">
         <div className="rounded-[2rem] bg-white p-6">
-          <h2 className="text-4xl font-black">Carrito</h2>
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <h2 className="text-4xl font-black">Carrito</h2>
+
+            {cart.length > 0 && (
+              <button
+                onClick={clearCart}
+                className="rounded-full bg-red-50 px-5 py-3 font-black text-red-600 hover:bg-red-100"
+              >
+                Vaciar carrito
+              </button>
+            )}
+          </div>
 
           {cart.length === 0 ? (
             <p className="mt-6 text-slate-600">Tu carrito está vacío.</p>
@@ -411,7 +516,7 @@ export default function Home() {
                 {cart.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-4 rounded-3xl bg-[#f7fbf5] p-4"
+                    className="flex flex-col gap-4 rounded-3xl bg-[#f7fbf5] p-4 md:flex-row md:items-center"
                   >
                     <img
                       src={item.image}
@@ -424,47 +529,44 @@ export default function Home() {
                       <p className="text-green-700">
                         RD${item.price.toLocaleString("es-DO")}
                       </p>
+                      <p className="text-xs font-bold text-slate-500">
+                        Stock disponible: {item.stock}
+                      </p>
                     </div>
 
-                    <button
-                      onClick={() =>
-                        setCart(
-                          cart.map((p) =>
-                            p.id === item.id
-                              ? { ...p, quantity: Math.max(1, p.quantity - 1) }
-                              : p
-                          )
-                        )
-                      }
-                      className="px-3 font-black"
-                    >
-                      −
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => decreaseQuantity(item.id)}
+                        className="rounded-full bg-white px-4 py-2 font-black"
+                      >
+                        −
+                      </button>
 
-                    <span>{item.quantity}</span>
+                      <span className="font-black">{item.quantity}</span>
 
-                    <button
-                      onClick={() => addToCart(item)}
-                      className="px-3 font-black"
-                    >
-                      +
-                    </button>
+                      <button
+                        onClick={() => addToCart(item)}
+                        className="rounded-full bg-white px-4 py-2 font-black"
+                      >
+                        +
+                      </button>
 
-                    <button
-                      onClick={() =>
-                        setCart(cart.filter((p) => p.id !== item.id))
-                      }
-                      className="text-red-600"
-                    >
-                      Eliminar
-                    </button>
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="font-black text-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="rounded-3xl bg-green-950 p-6 text-white">
                 <h3 className="text-2xl font-black">Resumen</h3>
+
                 <p className="mt-4">Productos: {quantity}</p>
+
                 <p className="mt-2 text-2xl font-black">
                   Total: RD${total.toLocaleString("es-DO")}
                 </p>
@@ -485,44 +587,55 @@ export default function Home() {
         <div className="rounded-[2rem] bg-white p-6">
           <h2 className="text-4xl font-black">Finalizar compra</h2>
 
+          <p className="mt-2 text-sm font-bold text-slate-500">
+            Los campos marcados con * son obligatorios.
+          </p>
+
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-                label="Nombre completo"
+                label="Nombre completo *"
                 value={form.fullName}
                 onChange={(value) => setField("fullName", value)}
               />
+
               <Input
-                label="Teléfono"
+                label="Teléfono *"
                 value={form.phone}
                 onChange={(value) => setField("phone", value)}
               />
+
               <Input
                 label="Correo"
                 value={form.email}
                 onChange={(value) => setField("email", value)}
               />
+
               <Input
-                label="Ciudad"
+                label="Ciudad *"
                 value={form.city}
                 onChange={(value) => setField("city", value)}
               />
+
               <Input
                 label="Sector"
                 value={form.sector}
                 onChange={(value) => setField("sector", value)}
               />
+
               <Input
                 label="Referencia"
                 value={form.reference}
                 onChange={(value) => setField("reference", value)}
               />
+
               <Input
-                label="Dirección manual"
+                label="Dirección manual *"
                 value={form.address}
                 onChange={(value) => setField("address", value)}
                 full
               />
+
               <Input
                 label="Link de Google Maps"
                 value={form.mapsUrl}
@@ -538,9 +651,14 @@ export default function Home() {
 
               <button
                 onClick={createOrder}
-                className="mt-6 w-full rounded-2xl bg-lime-400 py-4 font-black text-green-950"
+                disabled={creatingOrder || cart.length === 0}
+                className={`mt-6 w-full rounded-2xl py-4 font-black text-green-950 ${
+                  creatingOrder || cart.length === 0
+                    ? "cursor-not-allowed bg-slate-300"
+                    : "bg-lime-400 hover:bg-lime-300"
+                }`}
               >
-                Crear pedido y pagar
+                {creatingOrder ? "Creando pedido..." : "Crear pedido y pagar"}
               </button>
 
               {status && <p className="mt-4 text-sm">{status}</p>}
@@ -571,7 +689,7 @@ function Info({
   title,
   text,
 }: {
- icon: ReactNode;
+  icon: ReactNode;
   title: string;
   text: string;
 }) {
@@ -598,6 +716,7 @@ function Input({
   return (
     <div className={full ? "md:col-span-2" : ""}>
       <label className="mb-2 block text-sm font-black">{label}</label>
+
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
