@@ -209,9 +209,29 @@ export default function Home() {
         return;
       }
 
-      setStatus("Pedido creado correctamente. Falta conectar pasarela de pago.");
-      setCart([]);
-      setForm(emptyForm);
+      setStatus("Pedido creado correctamente. Stock actualizado.");
+setCart([]);
+setForm(emptyForm);
+
+const { data } = await supabase
+  .from("products")
+  .select("*")
+  .order("id", { ascending: true });
+
+if (data) {
+  const formattedProducts: Product[] = data.map((product) => ({
+    id: product.id,
+    name: product.name,
+    category: product.category,
+    subCategory: product.sub_category,
+    price: Number(product.price),
+    stock: product.stock ?? 0,
+    image: product.image,
+    description: product.description,
+  }));
+
+  setProductsList(formattedProducts);
+}
     } catch (error) {
       setStatus("Ocurrió un error creando el pedido. Intenta de nuevo.");
     } finally {
