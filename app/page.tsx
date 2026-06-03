@@ -602,12 +602,12 @@ export default function Home() {
           </button>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <a
-              href="/mi-cuenta"
-              className="rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
-            >
-              Mi cuenta
-            </a>
+           <a
+  href="/mi-cuenta"
+  className="rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
+>
+  Mi cuenta
+</a>
 
             <a
               href="#consultar-pedido"
