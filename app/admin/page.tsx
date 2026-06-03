@@ -98,22 +98,25 @@ export default function AdminPage() {
   };
 
   const loadOrders = async () => {
-    setLoading(true);
-    setStatus("Cargando pedidos...");
+  setLoading(true);
+  setStatus("Cargando pedidos...");
 
-    const response = await fetch("/api/admin/orders");
-    const result = await response.json();
+  const response = await fetch("/api/admin/orders", {
+    cache: "no-store",
+  });
 
-    if (!response.ok) {
-      setStatus(result.error || "No se pudieron cargar los pedidos.");
-      setLoading(false);
-      return;
-    }
+  const result = await response.json();
 
-    setOrders(result.orders || []);
-    setStatus("Pedidos cargados.");
+  if (!response.ok) {
+    setStatus(result.error || "No se pudieron cargar los pedidos.");
     setLoading(false);
-  };
+    return;
+  }
+
+  setOrders(result.orders || []);
+  setStatus("Pedidos cargados.");
+  setLoading(false);
+};
 
   useEffect(() => {
     loadProducts();
@@ -173,27 +176,32 @@ export default function AdminPage() {
     loadProducts();
   };
 
-  const updateOrderStatus = async (id: number, newStatus: string) => {
-    setStatus("Actualizando pedido...");
+ const updateOrderStatus = async (id: number, newStatus: string) => {
+  setStatus("Actualizando pedido...");
 
-    const response = await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: newStatus }),
-    });
+  const response = await fetch(`/api/admin/orders/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status: newStatus }),
+  });
 
-    const result = await response.json();
+  const result = await response.json();
 
-    if (!response.ok) {
-      setStatus(result.error || "No se pudo actualizar el pedido.");
-      return;
-    }
+  if (!response.ok) {
+    setStatus(result.error || "No se pudo actualizar el pedido.");
+    return;
+  }
 
-    setStatus("Pedido actualizado.");
-    loadOrders();
-  };
+  setOrders((currentOrders) =>
+    currentOrders.map((order) =>
+      order.id === id ? { ...order, status: newStatus } : order
+    )
+  );
+
+  setStatus("Pedido actualizado.");
+};
 
   return (
     <main className="min-h-screen bg-[#f7fbf5] p-6 text-slate-900">
