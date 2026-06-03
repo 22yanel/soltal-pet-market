@@ -11,6 +11,7 @@ import {
   Truck,
   ShieldCheck,
   Download,
+  PackageSearch,
 } from "lucide-react";
 import { categories, type Product } from "@/data/products";
 import type { CartItem, OrderForm } from "@/lib/types";
@@ -38,6 +39,23 @@ const animalSuggestions = [
   "Conejos",
 ];
 
+const statusLabels: Record<string, string> = {
+  received: "Recibido",
+  preparing: "En preparación",
+  on_the_way: "En camino",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
+type OrderStatusResult = {
+  id: number;
+  customer: OrderForm;
+  items: CartItem[];
+  total: number;
+  status: string;
+  created_at: string;
+};
+
 export default function Home() {
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -48,34 +66,42 @@ export default function Home() {
   const [form, setForm] = useState<OrderForm>(emptyForm);
   const [status, setStatus] = useState("");
   const [creatingOrder, setCreatingOrder] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<number | null>(null);
+
+  const [orderIdInput, setOrderIdInput] = useState("");
+  const [orderPhoneInput, setOrderPhoneInput] = useState("");
+  const [checkingOrder, setCheckingOrder] = useState(false);
+  const [orderStatusMessage, setOrderStatusMessage] = useState("");
+  const [orderStatusResult, setOrderStatusResult] =
+    useState<OrderStatusResult | null>(null);
+
+  const loadProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Error cargando productos:", error.message);
+      setStatus("No se pudieron cargar los productos.");
+      return;
+    }
+
+    const formattedProducts: Product[] = data.map((product) => ({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      subCategory: product.sub_category,
+      price: Number(product.price),
+      stock: product.stock ?? 0,
+      image: product.image,
+      description: product.description,
+    }));
+
+    setProductsList(formattedProducts);
+  };
 
   useEffect(() => {
-    const loadProducts = async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("id", { ascending: true });
-
-      if (error) {
-        console.error("Error cargando productos:", error.message);
-        setStatus("No se pudieron cargar los productos.");
-        return;
-      }
-
-      const formattedProducts: Product[] = data.map((product) => ({
-        id: product.id,
-        name: product.name,
-        category: product.category,
-        subCategory: product.sub_category,
-        price: Number(product.price),
-        stock: product.stock ?? 0,
-        image: product.image,
-        description: product.description,
-      }));
-
-      setProductsList(formattedProducts);
-    };
-
     loadProducts();
   }, []);
 
@@ -188,6 +214,7 @@ export default function Home() {
 
     setCreatingOrder(true);
     setStatus("Creando pedido...");
+    setLastOrderId(null);
 
     try {
       const response = await fetch("/api/orders", {
@@ -209,33 +236,65 @@ export default function Home() {
         return;
       }
 
-      setStatus("Pedido creado correctamente. Stock actualizado.");
-setCart([]);
-setForm(emptyForm);
+      const newOrderId = result.order?.id || null;
+      setLastOrderId(newOrderId);
 
-const { data } = await supabase
-  .from("products")
-  .select("*")
-  .order("id", { ascending: true });
+      setStatus(
+        newOrderId
+          ? `Pedido creado correctamente. Tu número de pedido es: #${newOrderId}. Guarda ese número para consultar el estado.`
+          : "Pedido creado correctamente. Guarda tus datos para consultar el estado."
+      );
 
-if (data) {
-  const formattedProducts: Product[] = data.map((product) => ({
-    id: product.id,
-    name: product.name,
-    category: product.category,
-    subCategory: product.sub_category,
-    price: Number(product.price),
-    stock: product.stock ?? 0,
-    image: product.image,
-    description: product.description,
-  }));
-
-  setProductsList(formattedProducts);
-}
+      setCart([]);
+      setForm(emptyForm);
+      await loadProducts();
     } catch (error) {
       setStatus("Ocurrió un error creando el pedido. Intenta de nuevo.");
     } finally {
       setCreatingOrder(false);
+    }
+  };
+
+  const checkOrderStatus = async () => {
+    if (!orderIdInput.trim()) {
+      setOrderStatusMessage("Escribe el número de pedido.");
+      return;
+    }
+
+    if (!orderPhoneInput.trim()) {
+      setOrderStatusMessage("Escribe el teléfono usado en el pedido.");
+      return;
+    }
+
+    setCheckingOrder(true);
+    setOrderStatusMessage("Buscando pedido...");
+    setOrderStatusResult(null);
+
+    try {
+      const response = await fetch("/api/order-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: orderIdInput,
+          phone: orderPhoneInput,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setOrderStatusMessage(result.error || "No se pudo consultar el pedido.");
+        return;
+      }
+
+      setOrderStatusResult(result.order);
+      setOrderStatusMessage("Pedido encontrado.");
+    } catch (error) {
+      setOrderStatusMessage("Ocurrió un error consultando el pedido.");
+    } finally {
+      setCheckingOrder(false);
     }
   };
 
@@ -296,18 +355,27 @@ if (data) {
             </div>
           </button>
 
-          <a
-            href="#carrito"
-            className="flex items-center gap-2 rounded-full bg-green-700 px-5 py-3 font-black text-white"
-          >
-            <ShoppingCart size={18} />
-            Ir al carrito
-            {quantity > 0 && (
-              <span className="rounded-full bg-white px-2 text-green-700">
-                {quantity}
-              </span>
-            )}
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="#consultar-pedido"
+              className="hidden rounded-full bg-green-50 px-5 py-3 font-black text-green-800 md:block"
+            >
+              Consultar pedido
+            </a>
+
+            <a
+              href="#carrito"
+              className="flex items-center gap-2 rounded-full bg-green-700 px-5 py-3 font-black text-white"
+            >
+              <ShoppingCart size={18} />
+              Ir al carrito
+              {quantity > 0 && (
+                <span className="rounded-full bg-white px-2 text-green-700">
+                  {quantity}
+                </span>
+              )}
+            </a>
+          </div>
         </div>
       </header>
 
@@ -322,7 +390,7 @@ if (data) {
             diferentes animales.
           </p>
 
-          <div className="mt-8 flex gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             <a
               href="#productos"
               className="rounded-full bg-green-700 px-7 py-4 font-black text-white"
@@ -331,10 +399,10 @@ if (data) {
             </a>
 
             <a
-              href="#carrito"
+              href="#consultar-pedido"
               className="rounded-full bg-white px-7 py-4 font-black text-green-800"
             >
-              Ir al carrito
+              Consultar pedido
             </a>
           </div>
         </div>
@@ -377,6 +445,14 @@ if (data) {
         <section className="mx-auto max-w-7xl px-4">
           <div className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-700 shadow-sm">
             {status}
+
+            {lastOrderId && (
+              <div className="mt-2 rounded-2xl bg-green-50 p-3 text-green-800">
+                Tu número de pedido es{" "}
+                <span className="font-black">#{lastOrderId}</span>. Guárdalo
+                junto con tu teléfono para consultar el estado.
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -684,6 +760,111 @@ if (data) {
               {status && <p className="mt-4 text-sm">{status}</p>}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="consultar-pedido" className="mx-auto max-w-7xl px-4 py-12">
+        <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-green-700 p-3 text-white">
+              <PackageSearch size={24} />
+            </div>
+
+            <div>
+              <p className="font-black uppercase text-green-700">
+                Estado del pedido
+              </p>
+              <h2 className="text-4xl font-black">Consultar pedido</h2>
+            </div>
+          </div>
+
+          <p className="mt-4 text-slate-600">
+            Escribe tu número de pedido y el teléfono usado al comprar.
+          </p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-[1fr_1fr_220px]">
+            <Input
+              label="Número de pedido"
+              value={orderIdInput}
+              onChange={setOrderIdInput}
+            />
+
+            <Input
+              label="Teléfono"
+              value={orderPhoneInput}
+              onChange={setOrderPhoneInput}
+            />
+
+            <div className="flex items-end">
+              <button
+                onClick={checkOrderStatus}
+                disabled={checkingOrder}
+                className="w-full rounded-2xl bg-green-700 px-6 py-3 font-black text-white hover:bg-green-800 disabled:bg-slate-300"
+              >
+                {checkingOrder ? "Buscando..." : "Consultar"}
+              </button>
+            </div>
+          </div>
+
+          {orderStatusMessage && (
+            <p className="mt-5 text-sm font-bold text-slate-600">
+              {orderStatusMessage}
+            </p>
+          )}
+
+          {orderStatusResult && (
+            <div className="mt-6 rounded-3xl bg-[#f7fbf5] p-5">
+              <div className="flex flex-col justify-between gap-4 md:flex-row">
+                <div>
+                  <p className="font-black text-green-700">
+                    Pedido #{orderStatusResult.id}
+                  </p>
+                  <h3 className="mt-1 text-2xl font-black">
+                    Estado:{" "}
+                    {statusLabels[orderStatusResult.status] ||
+                      orderStatusResult.status}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Fecha:{" "}
+                    {new Date(orderStatusResult.created_at).toLocaleString(
+                      "es-DO"
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white p-4">
+                  <p className="text-sm font-bold text-slate-500">Total</p>
+                  <p className="text-2xl font-black text-green-700">
+                    RD${Number(orderStatusResult.total).toLocaleString("es-DO")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <h4 className="font-black">Productos</h4>
+
+                <div className="mt-3 space-y-3">
+                  {orderStatusResult.items?.map((item, index) => (
+                    <div
+                      key={`${item.id}-${index}`}
+                      className="flex justify-between rounded-2xl bg-white px-4 py-3 text-sm"
+                    >
+                      <span className="font-black">
+                        {item.name} x{item.quantity}
+                      </span>
+
+                      <span className="font-black text-green-700">
+                        RD$
+                        {Number(item.price * item.quantity).toLocaleString(
+                          "es-DO"
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
