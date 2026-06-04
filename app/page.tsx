@@ -793,76 +793,97 @@ export default function Home() {
         </section>
       )}
 
-      <section id="productos" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="font-black uppercase text-green-700">Categorías</p>
-            <h2 className="text-4xl font-black">Productos</h2>
-          </div>
+     <section id="productos" className="mx-auto max-w-7xl px-4 py-16">
+  <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+    <div className="animate-fade-up">
+      <p className="font-black uppercase tracking-widest text-green-700">
+        Catálogo
+      </p>
 
-          <div className="relative max-w-md rounded-full bg-white px-5 py-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <Search size={18} />
+      <h2 className="mt-2 text-4xl font-black text-slate-950 md:text-5xl">
+        Productos para tus animales
+      </h2>
 
-              <input
-                value={search}
-                onFocus={() => setShowSuggestions(true)}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar productos..."
-                className="w-full bg-transparent outline-none"
-              />
+      <p className="mt-4 max-w-2xl text-slate-600">
+        Busca por nombre, categoría o tipo de animal. Los productos agotados se
+        muestran claramente para evitar pedidos incorrectos.
+      </p>
+    </div>
 
-              {search && (
-                <button onClick={() => setSearch("")}>
-                  <X size={16} />
-                </button>
-              )}
-            </div>
+    <div className="relative w-full max-w-md rounded-full border border-green-100 bg-white px-5 py-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <Search size={18} className="text-green-700" />
 
-            {showSuggestions && (
-              <div className="absolute left-0 right-0 top-14 z-20 rounded-3xl bg-white p-3 shadow-xl">
-                {animalSuggestions.map((animal) => (
-                  <button
-                    key={animal}
-                    onMouseDown={() => {
-                      setCategory(animal);
-                      setSearch(animal);
-                      setShowSuggestions(false);
-                    }}
-                    className="mr-2 mt-2 rounded-full bg-green-50 px-4 py-2 font-bold"
-                  >
-                    {animal}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <input
+          value={search}
+          onFocus={() => setShowSuggestions(true)}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar productos..."
+          className="w-full bg-transparent outline-none"
+        />
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        {search && (
           <button
-            onClick={() => {
-              setCategory("Todos");
-              setSelected(null);
-            }}
-            className="rounded-full bg-green-700 px-5 py-3 font-black text-white"
+            onClick={() => setSearch("")}
+            className="rounded-full bg-green-50 p-2 text-green-800"
           >
-            Todos
+            <X size={16} />
           </button>
+        )}
+      </div>
 
-          {categories.map((item) => (
+      {showSuggestions && (
+        <div className="absolute left-0 right-0 top-16 z-20 rounded-3xl border border-green-100 bg-white p-3 shadow-xl">
+          {animalSuggestions.map((animal) => (
             <button
-              key={item}
-              onClick={() => {
-                setCategory(item);
-                setSelected(null);
+              key={animal}
+              onMouseDown={() => {
+                setCategory(animal);
+                setSearch(animal);
+                setShowSuggestions(false);
               }}
-              className="rounded-full bg-white px-5 py-3 font-black text-green-800"
+              className="mr-2 mt-2 rounded-full bg-green-50 px-4 py-2 font-bold text-green-800 transition hover:bg-green-100"
             >
-              {item}
+              {animal}
             </button>
           ))}
         </div>
+      )}
+    </div>
+  </div>
+
+  <div className="mt-8 flex flex-wrap gap-3">
+    <button
+      onClick={() => {
+        setCategory("Todos");
+        setSelected(null);
+      }}
+      className={`premium-button rounded-full px-5 py-3 font-black ${
+        category === "Todos"
+          ? "bg-green-700 text-white"
+          : "bg-white text-green-800"
+      }`}
+    >
+      Todos
+    </button>
+
+    {categories.map((item) => (
+      <button
+        key={item}
+        onClick={() => {
+          setCategory(item);
+          setSelected(null);
+        }}
+        className={`premium-button rounded-full px-5 py-3 font-black ${
+          category === item
+            ? "bg-green-700 text-white"
+            : "bg-white text-green-800"
+        }`}
+      >
+        {item}
+      </button>
+    ))}
+  </div>
 
         {selected ? (
           <section className="mt-8 rounded-[2rem] bg-white p-6">
