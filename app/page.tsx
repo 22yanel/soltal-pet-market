@@ -749,24 +749,25 @@ export default function Home() {
     </div>
   </div>
 </section>
-      <section className="mx-auto grid max-w-7xl gap-4 px-4 py-8 md:grid-cols-3">
-        <Info
-          icon={<CreditCard />}
-          title="Pago con tarjeta"
-          text="Listo para conectar pasarela."
-        />
-        <Info
-          icon={<Truck />}
-          title="Entrega rápida"
-          text="Pedido con dirección y Google Maps."
-        />
-        <Info
-          icon={<ShieldCheck />}
-          title="Productos confiables"
-          text="Catálogo administrable."
-        />
-      </section>
+    <section className="relative z-10 mx-auto -mt-10 grid max-w-7xl gap-4 px-4 pb-10 md:grid-cols-3">
+  <Info
+    icon={<CreditCard />}
+    title="Compra simple"
+    text="Haz tu pedido online con datos claros y recibe tu factura por correo."
+  />
 
+  <Info
+    icon={<Truck />}
+    title="Entrega organizada"
+    text="El pedido queda con dirección, referencia y estado para seguimiento."
+  />
+
+  <Info
+    icon={<ShieldCheck />}
+    title="Cuenta del cliente"
+    text="Inicia sesión con Google y revisa tus pedidos desde Mi cuenta."
+  />
+</section>
       {status && (
         <section className="mx-auto max-w-7xl px-4">
           <div className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-700 shadow-sm">
@@ -1226,14 +1227,17 @@ function Info({
   text: string;
 }) {
   return (
-    <div className="rounded-3xl bg-white p-6 shadow-sm">
-      <div className="mb-4 text-green-700">{icon}</div>
-      <h3 className="font-black">{title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{text}</p>
+    <div className="premium-card rounded-[2rem] border border-green-100 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-700 text-white">
+        {icon}
+      </div>
+
+      <h3 className="text-xl font-black text-slate-950">{title}</h3>
+
+      <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
     </div>
   );
 }
-
 function Input({
   label,
   value,
