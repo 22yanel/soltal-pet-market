@@ -946,8 +946,8 @@ export default function Home() {
         )}
       </section>
 
-      <section id="carrito" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="rounded-[2rem] bg-white p-6">
+    <section id="carrito" className="mx-auto max-w-7xl px-4 py-16">
+    <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <h2 className="text-4xl font-black">Carrito</h2>
 
@@ -1015,7 +1015,7 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="rounded-3xl bg-green-950 p-6 text-white">
+            <div className="rounded-[2rem] bg-gradient-to-br from-green-950 to-green-800 p-6 text-white shadow-xl">
                 <h3 className="text-2xl font-black">Resumen</h3>
 
                 <p className="mt-4">Productos: {quantity}</p>
@@ -1024,19 +1024,19 @@ export default function Home() {
                   Total: RD${total.toLocaleString("es-DO")}
                 </p>
 
-                <a
-                  href="#pago"
-                  className="mt-6 block rounded-2xl bg-lime-400 py-4 text-center font-black text-green-950"
-                >
-                  Proceder al pago
-                </a>
+             <a
+  href="#pago"
+  className="premium-button mt-6 block rounded-2xl bg-lime-300 py-4 text-center font-black text-green-950"
+>
+  Proceder al pago
+</a>
               </div>
             </div>
           )}
         </div>
       </section>
 
-      <section id="pago" className="mx-auto max-w-7xl px-4 py-12">
+<section id="pago" className="mx-auto max-w-7xl px-4 py-16">
         <div className="rounded-[2rem] bg-white p-6">
           <h2 className="text-4xl font-black">Finalizar compra</h2>
 
@@ -1097,7 +1097,7 @@ export default function Home() {
               />
             </div>
 
-            <div className="rounded-3xl bg-green-950 p-6 text-white">
+    <div className="rounded-[2rem] bg-gradient-to-br from-green-950 to-green-800 p-6 text-white shadow-xl">
               <p className="text-2xl font-black">
                 Total: RD${total.toLocaleString("es-DO")}
               </p>
