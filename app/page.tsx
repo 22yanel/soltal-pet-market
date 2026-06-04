@@ -632,57 +632,123 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-2">
-        <div>
-          <h1 className="text-5xl font-black">
-            Todo para tus animales en un solo lugar
-          </h1>
+     <section className="relative overflow-hidden">
+  <div className="absolute inset-0 bg-gradient-to-br from-green-950 via-green-800 to-lime-500" />
 
-          <p className="mt-5 text-lg text-slate-700">
-            Compra alimentos, cuidado, antipulgas, juguetes y accesorios para
-            diferentes animales.
-          </p>
+  <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-lime-300/20 blur-3xl" />
+  <div className="absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="#productos"
-              className="rounded-full bg-green-700 px-7 py-4 font-black text-white"
-            >
-              Ver productos
-            </a>
+  <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 md:grid-cols-2 md:items-center">
+    <div className="animate-fade-up text-white">
+      <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-3 text-sm font-black backdrop-blur">
+        <PawPrint size={18} />
+        Tienda online para mascotas y animales
+      </div>
 
-            <a
-              href="/mi-cuenta"
-              className="rounded-full bg-lime-400 px-7 py-4 font-black text-green-950"
-            >
-              Mi cuenta
-            </a>
+      <h1 className="mt-6 text-5xl font-black leading-tight md:text-6xl">
+        Todo para tus animales, rápido, fácil y seguro.
+      </h1>
 
-            <a
-              href="#consultar-pedido"
-              className="rounded-full bg-white px-7 py-4 font-black text-green-800"
-            >
-              Consultar pedido
-            </a>
-          </div>
+      <p className="mt-6 max-w-xl text-lg leading-8 text-white/85">
+        Compra alimentos, cuidado, accesorios y productos esenciales para tus
+        mascotas. Haz tu pedido online, recibe factura por correo y consulta el
+        estado cuando quieras.
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <a
+          href="#productos"
+          className="premium-button rounded-full bg-lime-300 px-8 py-4 font-black text-green-950"
+        >
+          Comprar ahora
+        </a>
+
+        <a
+          href="/mi-cuenta"
+          className="rounded-full bg-white/15 px-8 py-4 font-black text-white backdrop-blur transition hover:bg-white/25"
+        >
+          Mi cuenta
+        </a>
+
+        <a
+          href="#consultar-pedido"
+          className="rounded-full bg-white px-8 py-4 font-black text-green-800 transition hover:bg-green-50"
+        >
+          Consultar pedido
+        </a>
+      </div>
+
+      <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
+        <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
+          <p className="text-2xl font-black">24/7</p>
+          <p className="mt-1 text-sm text-white/75">Pedidos online</p>
         </div>
 
-        <div className="rounded-[2rem] bg-gradient-to-br from-green-700 to-lime-500 p-8 text-white">
-          <div className="grid grid-cols-2 gap-4">
-            {["Perros", "Gatos", "Caballos", "Vacas", "Cerdos", "Conejos"].map(
-              (animal) => (
-                <div
-                  key={animal}
-                  className="rounded-3xl bg-white/20 p-8 text-center font-black"
-                >
-                  {animal}
+        <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
+          <p className="text-2xl font-black">RD$</p>
+          <p className="mt-1 text-sm text-white/75">Precios claros</p>
+        </div>
+
+        <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
+          <p className="text-2xl font-black">PDF</p>
+          <p className="mt-1 text-sm text-white/75">Factura digital</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="animate-soft-float">
+      <div className="glass-card rounded-[2.5rem] p-6 shadow-2xl">
+        <div className="rounded-[2rem] bg-white p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-black uppercase tracking-widest text-green-700">
+                Soltal Pet Market
+              </p>
+              <h2 className="mt-2 text-3xl font-black text-slate-950">
+                Compra inteligente
+              </h2>
+            </div>
+
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-700 text-white">
+              <PawPrint />
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            {[
+              "Alimentos",
+              "Accesorios",
+              "Cuidado",
+              "Antipulgas",
+              "Juguetes",
+              "Higiene",
+            ].map((item) => (
+              <div
+                key={item}
+                className="premium-card rounded-3xl bg-[#f7fbf5] p-5 text-center"
+              >
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-green-950">
+                  <PawPrint size={22} />
                 </div>
-              )
-            )}
+
+                <p className="font-black text-slate-800">{item}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-3xl bg-green-950 p-5 text-white">
+            <p className="text-sm font-bold text-white/70">
+              Estado de pedidos
+            </p>
+            <p className="mt-1 text-2xl font-black">
+              Recibido → En camino → Entregado
+            </p>
           </div>
         </div>
-      </section>
-
+      </div>
+    </div>
+  </div>
+</section>
       <section className="mx-auto grid max-w-7xl gap-4 px-4 py-8 md:grid-cols-3">
         <Info
           icon={<CreditCard />}
