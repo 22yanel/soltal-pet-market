@@ -116,7 +116,7 @@ export default function MyAccountPage() {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    window.location.href = "/?from=logout";
   };
 
   const openInvoice = (order: AccountOrder) => {
@@ -411,7 +411,7 @@ export default function MyAccountPage() {
           </a>
 
           <a
-            href="/"
+            href="/?from=account"
             className="ml-3 mt-6 inline-block rounded-full bg-green-50 px-6 py-3 font-black text-green-800"
           >
             Volver a la tienda
@@ -488,7 +488,7 @@ export default function MyAccountPage() {
               </p>
 
               <a
-                href="/"
+                href="/?from=account"
                 className="mt-5 inline-block rounded-full bg-green-700 px-6 py-3 font-black text-white"
               >
                 Ir a comprar
@@ -554,7 +554,7 @@ export default function MyAccountPage() {
         </div>
 
         <a
-          href="/"
+          href="/?from=account"
           className="mt-6 inline-block rounded-full bg-green-50 px-6 py-3 font-black text-green-800"
         >
           Volver a la tienda
