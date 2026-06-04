@@ -7,11 +7,18 @@ export const revalidate = 0;
 const statusMap: Record<string, string> = {
   recibido: "received",
   recibida: "received",
+
   preparar: "preparing",
   preparando: "preparing",
   preparacion: "preparing",
+
   "en camino": "on_the_way",
   camino: "on_the_way",
+
+  entregado: "delivered",
+  entregada: "delivered",
+  entrega: "delivered",
+  entragado: "delivered",
 };
 
 const statusLabels: Record<string, string> = {
