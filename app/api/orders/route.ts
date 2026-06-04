@@ -103,6 +103,68 @@ function buildInvoiceEmail(order: any) {
 }
 
 async function sendInvoiceEmail(order: any) {
+  async function sendTelegramOrderNotification(order: any) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!botToken || !chatId) {
+    console.log("Faltan variables de Telegram.");
+    return;
+  }
+
+  const customer = order.customer || {};
+  const items = order.items || [];
+
+  const productsText = items
+    .map(
+      (item: any) =>
+        `• ${item.name} x${item.quantity} - RD$${Number(
+          item.price * item.quantity
+        ).toLocaleString("es-DO")}`
+    )
+    .join("\n");
+
+  const message = `
+🛒 *Nuevo pedido en Soltal Pet Market*
+
+📦 *Pedido:* #${order.id}
+📌 *Estado:* Recibido
+💰 *Total:* RD$${Number(order.total).toLocaleString("es-DO")}
+
+👤 *Cliente:* ${customer.fullName || "No indicado"}
+📞 *Teléfono:* ${customer.phone || "No indicado"}
+📧 *Correo:* ${customer.email || "No indicado"}
+
+📍 *Ciudad:* ${customer.city || "No indicado"}
+🏘️ *Sector:* ${customer.sector || "No indicado"}
+🏠 *Dirección:* ${customer.address || "No indicado"}
+📌 *Referencia:* ${customer.reference || "No indicado"}
+🗺️ *Google Maps:* ${customer.mapsUrl || "No indicado"}
+
+🧾 *Productos:*
+${productsText}
+`;
+
+  const response = await fetch(
+    `https://api.telegram.org/bot${botToken}/sendMessage`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: "Markdown",
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.log("Error enviando mensaje a Telegram:", errorText);
+  }
+}
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
   const customerEmail = order.customer?.email;
@@ -224,6 +286,7 @@ export async function POST(request: Request) {
   }
 
   await sendInvoiceEmail(order);
+  await sendTelegramOrderNotification(order);
 
   return NextResponse.json(
     {
