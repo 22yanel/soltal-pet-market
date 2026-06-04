@@ -1043,6 +1043,10 @@ export default function Home() {
           <p className="mt-2 text-sm font-bold text-slate-500">
             Los campos marcados con * son obligatorios.
           </p>
+          <div className="mt-4 rounded-3xl border border-green-100 bg-green-50 p-4 text-sm font-bold text-green-900">
+  Puedes comprar sin cuenta. Pero si inicias sesión con Google, podrás ver tu
+  historial de pedidos automáticamente en Mi cuenta.
+</div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="grid gap-4 md:grid-cols-2">
