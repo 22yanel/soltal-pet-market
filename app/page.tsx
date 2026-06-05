@@ -76,13 +76,15 @@ export default function Home() {
   const [orderStatusMessage, setOrderStatusMessage] = useState("");
   const [orderStatusResult, setOrderStatusResult] =
     useState<OrderStatusResult | null>(null);
-const [customerActionMessage, setCustomerActionMessage] = useState("");
-const [customerActionLoading, setCustomerActionLoading] = useState(false);
-const [showAddressEditor, setShowAddressEditor] = useState(false);
-const [newAddress, setNewAddress] = useState("");
-const [newSector, setNewSector] = useState("");
-const [newReference, setNewReference] = useState("");
-const [newMapsUrl, setNewMapsUrl] = useState("");
+
+  const [customerActionMessage, setCustomerActionMessage] = useState("");
+  const [customerActionLoading, setCustomerActionLoading] = useState(false);
+  const [showAddressEditor, setShowAddressEditor] = useState(false);
+  const [newAddress, setNewAddress] = useState("");
+  const [newSector, setNewSector] = useState("");
+  const [newReference, setNewReference] = useState("");
+  const [newMapsUrl, setNewMapsUrl] = useState("");
+
   const loadProducts = async () => {
     const { data, error } = await supabase
       .from("products")
@@ -284,6 +286,8 @@ const [newMapsUrl, setNewMapsUrl] = useState("");
     setCheckingOrder(true);
     setOrderStatusMessage("Buscando pedido...");
     setOrderStatusResult(null);
+    setCustomerActionMessage("");
+    setShowAddressEditor(false);
 
     try {
       const response = await fetch("/api/order-status", {
@@ -312,101 +316,104 @@ const [newMapsUrl, setNewMapsUrl] = useState("");
       setCheckingOrder(false);
     }
   };
-const canCustomerModifyOrder = (status: string) => {
-  return status === "received" || status === "preparing";
-};
 
-const cancelCustomerOrder = async () => {
-  if (!orderStatusResult) return;
+  const canCustomerModifyOrder = (orderStatus: string) => {
+    return orderStatus === "received" || orderStatus === "preparing";
+  };
 
-  const confirmCancel = window.confirm(
-    `¿Seguro que quieres cancelar el pedido #${orderStatusResult.id}?`
-  );
+  const cancelCustomerOrder = async () => {
+    if (!orderStatusResult) return;
 
-  if (!confirmCancel) return;
+    const confirmCancel = window.confirm(
+      `¿Seguro que quieres cancelar el pedido #${orderStatusResult.id}?`
+    );
 
-  setCustomerActionLoading(true);
-  setCustomerActionMessage("Cancelando pedido...");
+    if (!confirmCancel) return;
 
-  try {
-    const response = await fetch("/api/customer-order-actions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        action: "cancel",
-        orderId: orderStatusResult.id,
-        phone: orderPhoneInput,
-      }),
-    });
+    setCustomerActionLoading(true);
+    setCustomerActionMessage("Cancelando pedido...");
 
-    const result = await response.json();
+    try {
+      const response = await fetch("/api/customer-order-actions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "cancel",
+          orderId: orderStatusResult.id,
+          phone: orderPhoneInput,
+        }),
+      });
 
-    if (!response.ok) {
-      setCustomerActionMessage(result.error || "No se pudo cancelar el pedido.");
+      const result = await response.json();
+
+      if (!response.ok) {
+        setCustomerActionMessage(result.error || "No se pudo cancelar el pedido.");
+        return;
+      }
+
+      setOrderStatusResult(result.order);
+      setCustomerActionMessage("Pedido cancelado correctamente.");
+      setShowAddressEditor(false);
+    } catch (error) {
+      setCustomerActionMessage("Ocurrió un error cancelando el pedido.");
+    } finally {
+      setCustomerActionLoading(false);
+    }
+  };
+
+  const updateCustomerAddress = async () => {
+    if (!orderStatusResult) return;
+
+    if (!newAddress.trim()) {
+      setCustomerActionMessage("Escribe la nueva dirección.");
       return;
     }
 
-    setOrderStatusResult(result.order);
-    setCustomerActionMessage("Pedido cancelado correctamente.");
-  } catch (error) {
-    setCustomerActionMessage("Ocurrió un error cancelando el pedido.");
-  } finally {
-    setCustomerActionLoading(false);
-  }
-};
+    setCustomerActionLoading(true);
+    setCustomerActionMessage("Actualizando dirección...");
 
-const updateCustomerAddress = async () => {
-  if (!orderStatusResult) return;
+    try {
+      const response = await fetch("/api/customer-order-actions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "update_address",
+          orderId: orderStatusResult.id,
+          phone: orderPhoneInput,
+          address: newAddress,
+          sector: newSector,
+          reference: newReference,
+          mapsUrl: newMapsUrl,
+        }),
+      });
 
-  if (!newAddress.trim()) {
-    setCustomerActionMessage("Escribe la nueva dirección.");
-    return;
-  }
+      const result = await response.json();
 
-  setCustomerActionLoading(true);
-  setCustomerActionMessage("Actualizando dirección...");
+      if (!response.ok) {
+        setCustomerActionMessage(
+          result.error || "No se pudo actualizar la dirección."
+        );
+        return;
+      }
 
-  try {
-    const response = await fetch("/api/customer-order-actions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        action: "update_address",
-        orderId: orderStatusResult.id,
-        phone: orderPhoneInput,
-        address: newAddress,
-        sector: newSector,
-        reference: newReference,
-        mapsUrl: newMapsUrl,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      setCustomerActionMessage(
-        result.error || "No se pudo actualizar la dirección."
-      );
-      return;
+      setOrderStatusResult(result.order);
+      setCustomerActionMessage("Dirección actualizada correctamente.");
+      setShowAddressEditor(false);
+      setNewAddress("");
+      setNewSector("");
+      setNewReference("");
+      setNewMapsUrl("");
+    } catch (error) {
+      setCustomerActionMessage("Ocurrió un error actualizando la dirección.");
+    } finally {
+      setCustomerActionLoading(false);
     }
+  };
 
-    setOrderStatusResult(result.order);
-    setCustomerActionMessage("Dirección actualizada correctamente.");
-    setShowAddressEditor(false);
-    setNewAddress("");
-    setNewSector("");
-    setNewReference("");
-    setNewMapsUrl("");
-  } catch (error) {
-    setCustomerActionMessage("Ocurrió un error actualizando la dirección.");
-  } finally {
-    setCustomerActionLoading(false);
-  }
-};
   const openInvoice = (order: OrderStatusResult | null) => {
     if (!order) {
       setStatus("No hay pedido disponible para generar factura.");
@@ -702,12 +709,12 @@ const updateCustomerAddress = async () => {
           </button>
 
           <div className="flex items-center gap-2 md:gap-3">
-           <a
-  href="/mi-cuenta"
-  className="rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
->
-  Mi cuenta
-</a>
+            <a
+              href="/mi-cuenta"
+              className="rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
+            >
+              Mi cuenta
+            </a>
 
             <a
               href="#consultar-pedido"
@@ -732,142 +739,142 @@ const updateCustomerAddress = async () => {
         </div>
       </header>
 
-     <section className="relative overflow-hidden">
-  <div className="absolute inset-0 bg-gradient-to-br from-green-950 via-green-800 to-lime-500" />
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-green-950 via-green-800 to-lime-500" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-lime-300/20 blur-3xl" />
+        <div className="absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
 
-  <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-lime-300/20 blur-3xl" />
-  <div className="absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
-
-  <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 md:grid-cols-2 md:items-center">
-    <div className="animate-fade-up text-white">
-      <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-3 text-sm font-black backdrop-blur">
-        <PawPrint size={18} />
-        Tienda online para mascotas y animales
-      </div>
-
-      <h1 className="mt-6 text-5xl font-black leading-tight md:text-6xl">
-        Todo para tus animales, rápido, fácil y seguro.
-      </h1>
-
-      <p className="mt-6 max-w-xl text-lg leading-8 text-white/85">
-        Compra alimentos, cuidado, accesorios y productos esenciales para tus
-        mascotas. Haz tu pedido online, recibe factura por correo y consulta el
-        estado cuando quieras.
-      </p>
-
-      <div className="mt-8 flex flex-wrap gap-3">
-        <a
-          href="#productos"
-          className="premium-button rounded-full bg-lime-300 px-8 py-4 font-black text-green-950"
-        >
-          Comprar ahora
-        </a>
-
-        <a
-          href="/mi-cuenta"
-          className="rounded-full bg-white/15 px-8 py-4 font-black text-white backdrop-blur transition hover:bg-white/25"
-        >
-          Mi cuenta
-        </a>
-
-        <a
-          href="#consultar-pedido"
-          className="rounded-full bg-white px-8 py-4 font-black text-green-800 transition hover:bg-green-50"
-        >
-          Consultar pedido
-        </a>
-      </div>
-
-      <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-        <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
-          <p className="text-2xl font-black">24/7</p>
-          <p className="mt-1 text-sm text-white/75">Pedidos online</p>
-        </div>
-
-        <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
-          <p className="text-2xl font-black">RD$</p>
-          <p className="mt-1 text-sm text-white/75">Precios claros</p>
-        </div>
-
-        <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
-          <p className="text-2xl font-black">PDF</p>
-          <p className="mt-1 text-sm text-white/75">Factura digital</p>
-        </div>
-      </div>
-    </div>
-
-    <div className="animate-soft-float">
-      <div className="glass-card rounded-[2.5rem] p-6 shadow-2xl">
-        <div className="rounded-[2rem] bg-white p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-black uppercase tracking-widest text-green-700">
-                Soltal Pet Market
-              </p>
-              <h2 className="mt-2 text-3xl font-black text-slate-950">
-                Compra inteligente
-              </h2>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 md:grid-cols-2 md:items-center">
+          <div className="animate-fade-up text-white">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-3 text-sm font-black backdrop-blur">
+              <PawPrint size={18} />
+              Tienda online para mascotas y animales
             </div>
 
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-700 text-white">
-              <PawPrint />
+            <h1 className="mt-6 text-5xl font-black leading-tight md:text-6xl">
+              Todo para tus animales, rápido, fácil y seguro.
+            </h1>
+
+            <p className="mt-6 max-w-xl text-lg leading-8 text-white/85">
+              Compra alimentos, cuidado, accesorios y productos esenciales para
+              tus mascotas. Haz tu pedido online, recibe factura por correo y
+              consulta el estado cuando quieras.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href="#productos"
+                className="premium-button rounded-full bg-lime-300 px-8 py-4 font-black text-green-950"
+              >
+                Comprar ahora
+              </a>
+
+              <a
+                href="/mi-cuenta"
+                className="rounded-full bg-white/15 px-8 py-4 font-black text-white backdrop-blur transition hover:bg-white/25"
+              >
+                Mi cuenta
+              </a>
+
+              <a
+                href="#consultar-pedido"
+                className="rounded-full bg-white px-8 py-4 font-black text-green-800 transition hover:bg-green-50"
+              >
+                Consultar pedido
+              </a>
+            </div>
+
+            <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
+              <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
+                <p className="text-2xl font-black">24/7</p>
+                <p className="mt-1 text-sm text-white/75">Pedidos online</p>
+              </div>
+
+              <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
+                <p className="text-2xl font-black">RD$</p>
+                <p className="mt-1 text-sm text-white/75">Precios claros</p>
+              </div>
+
+              <div className="rounded-3xl bg-white/12 p-4 backdrop-blur">
+                <p className="text-2xl font-black">PDF</p>
+                <p className="mt-1 text-sm text-white/75">Factura digital</p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            {[
-              "Alimentos",
-              "Accesorios",
-              "Cuidado",
-              "Antipulgas",
-              "Juguetes",
-              "Higiene",
-            ].map((item) => (
-              <div
-                key={item}
-                className="premium-card rounded-3xl bg-[#f7fbf5] p-5 text-center"
-              >
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-green-950">
-                  <PawPrint size={22} />
+          <div className="animate-soft-float">
+            <div className="glass-card rounded-[2.5rem] p-6 shadow-2xl">
+              <div className="rounded-[2rem] bg-white p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-black uppercase tracking-widest text-green-700">
+                      Soltal Pet Market
+                    </p>
+                    <h2 className="mt-2 text-3xl font-black text-slate-950">
+                      Compra inteligente
+                    </h2>
+                  </div>
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-700 text-white">
+                    <PawPrint />
+                  </div>
                 </div>
 
-                <p className="font-black text-slate-800">{item}</p>
-              </div>
-            ))}
-          </div>
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  {[
+                    "Alimentos",
+                    "Accesorios",
+                    "Cuidado",
+                    "Antipulgas",
+                    "Juguetes",
+                    "Higiene",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="premium-card rounded-3xl bg-[#f7fbf5] p-5 text-center"
+                    >
+                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-green-950">
+                        <PawPrint size={22} />
+                      </div>
 
-          <div className="mt-6 rounded-3xl bg-green-950 p-5 text-white">
-            <p className="text-sm font-bold text-white/70">
-              Estado de pedidos
-            </p>
-            <p className="mt-1 text-2xl font-black">
-              Recibido → En camino → Entregado
-            </p>
+                      <p className="font-black text-slate-800">{item}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 rounded-3xl bg-green-950 p-5 text-white">
+                  <p className="text-sm font-bold text-white/70">
+                    Estado de pedidos
+                  </p>
+                  <p className="mt-1 text-2xl font-black">
+                    Recibido → En camino → Entregado
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
-    <section className="relative z-10 mx-auto -mt-10 grid max-w-7xl gap-4 px-4 pb-10 md:grid-cols-3">
-  <Info
-    icon={<CreditCard />}
-    title="Compra simple"
-    text="Haz tu pedido online con datos claros y recibe tu factura por correo."
-  />
+      </section>
+            <section className="relative z-10 mx-auto -mt-10 grid max-w-7xl gap-4 px-4 pb-10 md:grid-cols-3">
+        <Info
+          icon={<CreditCard />}
+          title="Compra simple"
+          text="Haz tu pedido online con datos claros y recibe tu factura por correo."
+        />
 
-  <Info
-    icon={<Truck />}
-    title="Entrega organizada"
-    text="El pedido queda con dirección, referencia y estado para seguimiento."
-  />
+        <Info
+          icon={<Truck />}
+          title="Entrega organizada"
+          text="El pedido queda con dirección, referencia y estado para seguimiento."
+        />
 
-  <Info
-    icon={<ShieldCheck />}
-    title="Cuenta del cliente"
-    text="Inicia sesión con Google y revisa tus pedidos desde Mi cuenta."
-  />
-</section>
+        <Info
+          icon={<ShieldCheck />}
+          title="Cuenta del cliente"
+          text="Inicia sesión con Google y revisa tus pedidos desde Mi cuenta."
+        />
+      </section>
+
       {status && (
         <section className="mx-auto max-w-7xl px-4">
           <div className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-700 shadow-sm">
@@ -893,97 +900,97 @@ const updateCustomerAddress = async () => {
         </section>
       )}
 
-     <section id="productos" className="mx-auto max-w-7xl px-4 py-16">
-  <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-    <div className="animate-fade-up">
-      <p className="font-black uppercase tracking-widest text-green-700">
-        Catálogo
-      </p>
+      <section id="productos" className="mx-auto max-w-7xl px-4 py-16">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="animate-fade-up">
+            <p className="font-black uppercase tracking-widest text-green-700">
+              Catálogo
+            </p>
 
-      <h2 className="mt-2 text-4xl font-black text-slate-950 md:text-5xl">
-        Productos para tus animales
-      </h2>
+            <h2 className="mt-2 text-4xl font-black text-slate-950 md:text-5xl">
+              Productos para tus animales
+            </h2>
 
-      <p className="mt-4 max-w-2xl text-slate-600">
-        Busca por nombre, categoría o tipo de animal. Los productos agotados se
-        muestran claramente para evitar pedidos incorrectos.
-      </p>
-    </div>
+            <p className="mt-4 max-w-2xl text-slate-600">
+              Busca por nombre, categoría o tipo de animal. Los productos
+              agotados se muestran claramente para evitar pedidos incorrectos.
+            </p>
+          </div>
 
-    <div className="relative w-full max-w-md rounded-full border border-green-100 bg-white px-5 py-3 shadow-sm">
-      <div className="flex items-center gap-3">
-        <Search size={18} className="text-green-700" />
+          <div className="relative w-full max-w-md rounded-full border border-green-100 bg-white px-5 py-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Search size={18} className="text-green-700" />
 
-        <input
-          value={search}
-          onFocus={() => setShowSuggestions(true)}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar productos..."
-          className="w-full bg-transparent outline-none"
-        />
+              <input
+                value={search}
+                onFocus={() => setShowSuggestions(true)}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar productos..."
+                className="w-full bg-transparent outline-none"
+              />
 
-        {search && (
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="rounded-full bg-green-50 p-2 text-green-800"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {showSuggestions && (
+              <div className="absolute left-0 right-0 top-16 z-20 rounded-3xl border border-green-100 bg-white p-3 shadow-xl">
+                {animalSuggestions.map((animal) => (
+                  <button
+                    key={animal}
+                    onMouseDown={() => {
+                      setCategory(animal);
+                      setSearch(animal);
+                      setShowSuggestions(false);
+                    }}
+                    className="mr-2 mt-2 rounded-full bg-green-50 px-4 py-2 font-bold text-green-800 transition hover:bg-green-100"
+                  >
+                    {animal}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
           <button
-            onClick={() => setSearch("")}
-            className="rounded-full bg-green-50 p-2 text-green-800"
+            onClick={() => {
+              setCategory("Todos");
+              setSelected(null);
+            }}
+            className={`premium-button rounded-full px-5 py-3 font-black ${
+              category === "Todos"
+                ? "bg-green-700 text-white"
+                : "bg-white text-green-800"
+            }`}
           >
-            <X size={16} />
+            Todos
           </button>
-        )}
-      </div>
 
-      {showSuggestions && (
-        <div className="absolute left-0 right-0 top-16 z-20 rounded-3xl border border-green-100 bg-white p-3 shadow-xl">
-          {animalSuggestions.map((animal) => (
+          {categories.map((item) => (
             <button
-              key={animal}
-              onMouseDown={() => {
-                setCategory(animal);
-                setSearch(animal);
-                setShowSuggestions(false);
+              key={item}
+              onClick={() => {
+                setCategory(item);
+                setSelected(null);
               }}
-              className="mr-2 mt-2 rounded-full bg-green-50 px-4 py-2 font-bold text-green-800 transition hover:bg-green-100"
+              className={`premium-button rounded-full px-5 py-3 font-black ${
+                category === item
+                  ? "bg-green-700 text-white"
+                  : "bg-white text-green-800"
+              }`}
             >
-              {animal}
+              {item}
             </button>
           ))}
         </div>
-      )}
-    </div>
-  </div>
-
-  <div className="mt-8 flex flex-wrap gap-3">
-    <button
-      onClick={() => {
-        setCategory("Todos");
-        setSelected(null);
-      }}
-      className={`premium-button rounded-full px-5 py-3 font-black ${
-        category === "Todos"
-          ? "bg-green-700 text-white"
-          : "bg-white text-green-800"
-      }`}
-    >
-      Todos
-    </button>
-
-    {categories.map((item) => (
-      <button
-        key={item}
-        onClick={() => {
-          setCategory(item);
-          setSelected(null);
-        }}
-        className={`premium-button rounded-full px-5 py-3 font-black ${
-          category === item
-            ? "bg-green-700 text-white"
-            : "bg-white text-green-800"
-        }`}
-      >
-        {item}
-      </button>
-    ))}
-  </div>
 
         {selected ? (
           <section className="mt-8 rounded-[2rem] bg-white p-6">
@@ -1046,8 +1053,8 @@ const updateCustomerAddress = async () => {
         )}
       </section>
 
-    <section id="carrito" className="mx-auto max-w-7xl px-4 py-16">
-    <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
+      <section id="carrito" className="mx-auto max-w-7xl px-4 py-16">
+        <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <h2 className="text-4xl font-black">Carrito</h2>
 
@@ -1115,7 +1122,7 @@ const updateCustomerAddress = async () => {
                 ))}
               </div>
 
-            <div className="rounded-[2rem] bg-gradient-to-br from-green-950 to-green-800 p-6 text-white shadow-xl">
+              <div className="rounded-[2rem] bg-gradient-to-br from-green-950 to-green-800 p-6 text-white shadow-xl">
                 <h3 className="text-2xl font-black">Resumen</h3>
 
                 <p className="mt-4">Productos: {quantity}</p>
@@ -1124,29 +1131,30 @@ const updateCustomerAddress = async () => {
                   Total: RD${total.toLocaleString("es-DO")}
                 </p>
 
-             <a
-  href="#pago"
-  className="premium-button mt-6 block rounded-2xl bg-lime-300 py-4 text-center font-black text-green-950"
->
-  Proceder al pago
-</a>
+                <a
+                  href="#pago"
+                  className="premium-button mt-6 block rounded-2xl bg-lime-300 py-4 text-center font-black text-green-950"
+                >
+                  Proceder al pago
+                </a>
               </div>
             </div>
           )}
         </div>
       </section>
 
-<section id="pago" className="mx-auto max-w-7xl px-4 py-16">
-        <div className="rounded-[2rem] bg-white p-6">
+      <section id="pago" className="mx-auto max-w-7xl px-4 py-16">
+        <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <h2 className="text-4xl font-black">Finalizar compra</h2>
 
           <p className="mt-2 text-sm font-bold text-slate-500">
             Los campos marcados con * son obligatorios.
           </p>
+
           <div className="mt-4 rounded-3xl border border-green-100 bg-green-50 p-4 text-sm font-bold text-green-900">
-  Puedes comprar sin cuenta. Pero si inicias sesión con Google, podrás ver tu
-  historial de pedidos automáticamente en Mi cuenta.
-</div>
+            Puedes comprar sin cuenta. Pero si inicias sesión con Google, podrás
+            ver tu historial de pedidos automáticamente en Mi cuenta.
+          </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="grid gap-4 md:grid-cols-2">
@@ -1201,7 +1209,7 @@ const updateCustomerAddress = async () => {
               />
             </div>
 
-    <div className="rounded-[2rem] bg-gradient-to-br from-green-950 to-green-800 p-6 text-white shadow-xl">
+            <div className="rounded-[2rem] bg-gradient-to-br from-green-950 to-green-800 p-6 text-white shadow-xl">
               <p className="text-2xl font-black">
                 Total: RD${total.toLocaleString("es-DO")}
               </p>
@@ -1212,7 +1220,7 @@ const updateCustomerAddress = async () => {
                 className={`mt-6 w-full rounded-2xl py-4 font-black text-green-950 ${
                   creatingOrder || cart.length === 0
                     ? "cursor-not-allowed bg-slate-300"
-                    : "bg-lime-400 hover:bg-lime-300"
+                    : "bg-lime-300 hover:bg-lime-200"
                 }`}
               >
                 {creatingOrder ? "Creando pedido..." : "Crear pedido y pagar"}
@@ -1224,8 +1232,8 @@ const updateCustomerAddress = async () => {
         </div>
       </section>
 
-      <section id="consultar-pedido" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+      <section id="consultar-pedido" className="mx-auto max-w-7xl px-4 py-16">
+        <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-green-700 p-3 text-white">
               <PackageSearch size={24} />
@@ -1293,9 +1301,27 @@ const updateCustomerAddress = async () => {
                       "es-DO"
                     )}
                   </p>
+
+                  <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-700">
+                    <p className="font-black text-green-700">
+                      Dirección actual
+                    </p>
+                    <p className="mt-2">
+                      <strong>Dirección:</strong>{" "}
+                      {orderStatusResult.customer?.address || "No indicada"}
+                    </p>
+                    <p>
+                      <strong>Sector:</strong>{" "}
+                      {orderStatusResult.customer?.sector || "No indicado"}
+                    </p>
+                    <p>
+                      <strong>Referencia:</strong>{" "}
+                      {orderStatusResult.customer?.reference || "No indicada"}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="rounded-2xl bg-white p-4">
+                <div className="rounded-2xl bg-white p-4 md:min-w-[280px]">
                   <p className="text-sm font-bold text-slate-500">Total</p>
 
                   <p className="text-2xl font-black text-green-700">
@@ -1304,97 +1330,115 @@ const updateCustomerAddress = async () => {
 
                   <button
                     onClick={() => openInvoice(orderStatusResult)}
-                    className="mt-4 rounded-full bg-green-700 px-5 py-3 font-black text-white"
+                    className="mt-4 w-full rounded-full bg-green-700 px-5 py-3 font-black text-white"
                   >
                     Ver factura / guardar PDF
                   </button>
+
                   {canCustomerModifyOrder(orderStatusResult.status) ? (
-  <div className="mt-4 space-y-3">
-    <button
-      onClick={() => {
-        setShowAddressEditor(!showAddressEditor);
-        setNewAddress(orderStatusResult.customer?.address || "");
-        setNewSector(orderStatusResult.customer?.sector || "");
-        setNewReference(orderStatusResult.customer?.reference || "");
-        setNewMapsUrl(orderStatusResult.customer?.mapsUrl || "");
-      }}
-      disabled={customerActionLoading}
-      className="w-full rounded-full bg-lime-300 px-5 py-3 font-black text-green-950 disabled:bg-slate-300"
-    >
-      Cambiar dirección
-    </button>
+                    <div className="mt-4 space-y-3">
+                      <button
+                        onClick={() => {
+                          setShowAddressEditor(!showAddressEditor);
+                          setNewAddress(
+                            orderStatusResult.customer?.address || ""
+                          );
+                          setNewSector(orderStatusResult.customer?.sector || "");
+                          setNewReference(
+                            orderStatusResult.customer?.reference || ""
+                          );
+                          setNewMapsUrl(
+                            orderStatusResult.customer?.mapsUrl || ""
+                          );
+                        }}
+                        disabled={customerActionLoading}
+                        className="w-full rounded-full bg-lime-300 px-5 py-3 font-black text-green-950 disabled:bg-slate-300"
+                      >
+                        Cambiar dirección
+                      </button>
 
-    <button
-      onClick={cancelCustomerOrder}
-      disabled={customerActionLoading}
-      className="w-full rounded-full bg-red-50 px-5 py-3 font-black text-red-600 hover:bg-red-100 disabled:bg-slate-300"
-    >
-      Cancelar pedido
-    </button>
-  </div>
-  
-      
-  <div className="mt-5 rounded-3xl bg-white p-5">
-    <h4 className="text-xl font-black">Cambiar dirección de envío</h4>
-
-    <p className="mt-2 text-sm font-bold text-slate-500">
-      Solo puedes cambiar la dirección antes de que el pedido esté en camino.
-    </p>
-
-    <div className="mt-4 grid gap-4 md:grid-cols-2">
-      <Input
-        label="Nueva dirección *"
-        value={newAddress}
-        onChange={setNewAddress}
-        full
-      />
-
-      <Input
-        label="Sector"
-        value={newSector}
-        onChange={setNewSector}
-      />
-
-      <Input
-        label="Referencia"
-        value={newReference}
-        onChange={setNewReference}
-      />
-
-      <Input
-        label="Link de Google Maps"
-        value={newMapsUrl}
-        onChange={setNewMapsUrl}
-        full
-      />
-    </div>
-
-    <div className="mt-5 flex flex-wrap gap-3">
-      <button
-        onClick={updateCustomerAddress}
-        disabled={customerActionLoading}
-        className="rounded-full bg-green-700 px-6 py-3 font-black text-white disabled:bg-slate-300"
-      >
-        Guardar nueva dirección
-      </button>
-
-      <button
-        onClick={() => setShowAddressEditor(false)}
-        disabled={customerActionLoading}
-        className="rounded-full bg-slate-100 px-6 py-3 font-black text-slate-700"
-      >
-        Cancelar edición
-      </button>
-    </div>
-  </div>
-)}          
-) : (
-  <p className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-600">
-    Este pedido ya no puede modificarse porque está en camino, entregado o cancelado.
-  </p>
-)}
+                      <button
+                        onClick={cancelCustomerOrder}
+                        disabled={customerActionLoading}
+                        className="w-full rounded-full bg-red-50 px-5 py-3 font-black text-red-600 hover:bg-red-100 disabled:bg-slate-300"
+                      >
+                        Cancelar pedido
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-600">
+                      Este pedido ya no puede modificarse porque está en camino,
+                      entregado o cancelado.
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {showAddressEditor &&
+                canCustomerModifyOrder(orderStatusResult.status) && (
+                  <div className="mt-5 rounded-3xl bg-white p-5">
+                    <h4 className="text-xl font-black">
+                      Cambiar dirección de envío
+                    </h4>
+
+                    <p className="mt-2 text-sm font-bold text-slate-500">
+                      Solo puedes cambiar la dirección antes de que el pedido
+                      esté en camino.
+                    </p>
+
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <Input
+                        label="Nueva dirección *"
+                        value={newAddress}
+                        onChange={setNewAddress}
+                        full
+                      />
+
+                      <Input
+                        label="Sector"
+                        value={newSector}
+                        onChange={setNewSector}
+                      />
+
+                      <Input
+                        label="Referencia"
+                        value={newReference}
+                        onChange={setNewReference}
+                      />
+
+                      <Input
+                        label="Link de Google Maps"
+                        value={newMapsUrl}
+                        onChange={setNewMapsUrl}
+                        full
+                      />
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <button
+                        onClick={updateCustomerAddress}
+                        disabled={customerActionLoading}
+                        className="rounded-full bg-green-700 px-6 py-3 font-black text-white disabled:bg-slate-300"
+                      >
+                        Guardar nueva dirección
+                      </button>
+
+                      <button
+                        onClick={() => setShowAddressEditor(false)}
+                        disabled={customerActionLoading}
+                        className="rounded-full bg-slate-100 px-6 py-3 font-black text-slate-700"
+                      >
+                        Cancelar edición
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {customerActionMessage && (
+                <p className="mt-4 rounded-2xl bg-green-50 p-4 text-sm font-bold text-green-800">
+                  {customerActionMessage}
+                </p>
+              )}
 
               <div className="mt-5">
                 <h4 className="font-black">Productos</h4>
@@ -1448,6 +1492,7 @@ function Info({
     </div>
   );
 }
+
 function Input({
   label,
   value,
