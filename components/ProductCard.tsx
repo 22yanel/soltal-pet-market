@@ -13,7 +13,7 @@ export default function ProductCard({
   const isOutOfStock = Number(product.stock) <= 0;
 
   return (
-    <div className="premium-card group overflow-hidden rounded-[2rem] bg-white shadow-sm">
+<div className="futuristic-card group overflow-hidden rounded-[2rem] bg-white">
       <button
         onClick={() => onOpen(product)}
         className="relative block h-56 w-full overflow-hidden bg-green-50"
@@ -80,7 +80,7 @@ export default function ProductCard({
         <button
           onClick={() => onAdd(product)}
           disabled={isOutOfStock}
-          className={`premium-button mt-5 flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 font-black ${
+        className={`futuristic-button mt-5 flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 font-black ${
             isOutOfStock
               ? "cursor-not-allowed bg-slate-200 text-slate-500"
               : "bg-green-700 text-white hover:bg-green-800"
