@@ -786,7 +786,7 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#productos"
-                className="premium-button rounded-full bg-lime-300 px-8 py-4 font-black text-green-950"
+                className="futuristic-button rounded-full bg-lime-300 px-8 py-4 font-black text-green-950"
               >
                 Comprar ahora
               </a>
@@ -825,7 +825,7 @@ export default function Home() {
           </div>
 
           <div className="animate-soft-float">
-            <div className="glass-card rounded-[2.5rem] p-6 shadow-2xl">
+            <div className="futuristic-glass rounded-[2.5rem] p-6 shadow-2xl">
               <div className="rounded-[2rem] bg-white p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -853,7 +853,7 @@ export default function Home() {
                   ].map((item) => (
                     <div
                       key={item}
-                      className="premium-card rounded-3xl bg-[#f7fbf5] p-5 text-center"
+                      className="futuristic-card rounded-3xl bg-[#f7fbf5] p-5 text-center"
                     >
                       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-green-950">
                         <PawPrint size={22} />
@@ -988,7 +988,7 @@ export default function Home() {
               setCategory("Todos");
               setSelected(null);
             }}
-            className={`premium-button rounded-full px-5 py-3 font-black ${
+            className={`futuristic-button rounded-full px-5 py-3 font-black ${
               category === "Todos"
                 ? "bg-green-700 text-white"
                 : "bg-white text-green-800"
@@ -1004,7 +1004,7 @@ export default function Home() {
                 setCategory(item);
                 setSelected(null);
               }}
-              className={`premium-button rounded-full px-5 py-3 font-black ${
+              className={`futuristic-button rounded-full px-5 py-3 font-black ${
                 category === item
                   ? "bg-green-700 text-white"
                   : "bg-white text-green-800"
@@ -1077,7 +1077,7 @@ export default function Home() {
       </section>
 
       <section id="carrito" className="mx-auto max-w-7xl px-4 py-16">
-        <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
+        <div className="futuristic-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <h2 className="text-4xl font-black">Carrito</h2>
 
@@ -1156,7 +1156,7 @@ export default function Home() {
 
                 <a
                   href="#pago"
-                  className="premium-button mt-6 block rounded-2xl bg-lime-300 py-4 text-center font-black text-green-950"
+                  className="futuristic-button mt-6 block rounded-2xl bg-lime-300 py-4 text-center font-black text-green-950"
                 >
                   Proceder al pago
                 </a>
@@ -1167,7 +1167,7 @@ export default function Home() {
       </section>
 
       <section id="pago" className="mx-auto max-w-7xl px-4 py-16">
-        <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
+        <div className="futuristic-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <h2 className="text-4xl font-black">Finalizar compra</h2>
 
           <p className="mt-2 text-sm font-bold text-slate-500">
@@ -1258,7 +1258,7 @@ export default function Home() {
       </section>
 
       <section id="consultar-pedido" className="mx-auto max-w-7xl px-4 py-16">
-        <div className="premium-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
+        <div className="futuristic-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-green-700 p-3 text-white">
               <PackageSearch size={24} />
@@ -1513,7 +1513,7 @@ function Info({
   text: string;
 }) {
   return (
-    <div className="premium-card rounded-[2rem] border border-green-100 bg-white p-6 shadow-sm">
+    <div className="futuristic-card rounded-[2rem] border border-green-100 bg-white p-6 shadow-sm">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-700 text-white">
         {icon}
       </div>
