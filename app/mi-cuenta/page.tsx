@@ -48,6 +48,19 @@ export default function MyAccountPage() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
 
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
+
+  const [newAddress, setNewAddress] = useState("");
+  const [newSector, setNewSector] = useState("");
+  const [newReference, setNewReference] = useState("");
+  const [newMapsUrl, setNewMapsUrl] = useState("");
+
+  const canCustomerModifyOrder = (orderStatus: string) => {
+    return orderStatus === "received" || orderStatus === "preparing";
+  };
+
   const loadOrders = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
@@ -119,6 +132,104 @@ export default function MyAccountPage() {
     window.location.href = "/?from=logout";
   };
 
+  const cancelOrderFromAccount = async (order: AccountOrder) => {
+    const confirmCancel = window.confirm(
+      `¿Seguro que quieres cancelar el pedido #${order.id}?`
+    );
+
+    if (!confirmCancel) return;
+
+    setActionLoading(true);
+    setActionMessage(`Cancelando pedido #${order.id}...`);
+
+    try {
+      const response = await fetch("/api/customer-order-actions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "cancel",
+          orderId: order.id,
+          phone: order.customer?.phone || "",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setActionMessage(result.error || "No se pudo cancelar el pedido.");
+        return;
+      }
+
+      setActionMessage(`Pedido #${order.id} cancelado correctamente.`);
+      await loadOrders();
+    } catch (error) {
+      setActionMessage("Ocurrió un error cancelando el pedido.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const startEditingAddress = (order: AccountOrder) => {
+    setEditingOrderId(order.id);
+    setNewAddress(order.customer?.address || "");
+    setNewSector(order.customer?.sector || "");
+    setNewReference(order.customer?.reference || "");
+    setNewMapsUrl(order.customer?.mapsUrl || "");
+    setActionMessage("");
+  };
+
+  const updateAddressFromAccount = async (order: AccountOrder) => {
+    if (!newAddress.trim()) {
+      setActionMessage("Escribe la nueva dirección.");
+      return;
+    }
+
+    setActionLoading(true);
+    setActionMessage(`Actualizando dirección del pedido #${order.id}...`);
+
+    try {
+      const response = await fetch("/api/customer-order-actions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "update_address",
+          orderId: order.id,
+          phone: order.customer?.phone || "",
+          address: newAddress,
+          sector: newSector,
+          reference: newReference,
+          mapsUrl: newMapsUrl,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setActionMessage(
+          result.error || "No se pudo actualizar la dirección."
+        );
+        return;
+      }
+
+      setActionMessage(`Dirección del pedido #${order.id} actualizada.`);
+      setEditingOrderId(null);
+      setNewAddress("");
+      setNewSector("");
+      setNewReference("");
+      setNewMapsUrl("");
+
+      await loadOrders();
+    } catch (error) {
+      setActionMessage("Ocurrió un error actualizando la dirección.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const openInvoice = (order: AccountOrder) => {
     const customer = order.customer || {};
     const items = order.items || [];
@@ -141,7 +252,7 @@ export default function MyAccountPage() {
     const invoiceWindow = window.open("", "_blank");
 
     if (!invoiceWindow) {
-      setStatus("No se pudo abrir la factura. Permite ventanas emergentes.");
+      setActionMessage("No se pudo abrir la factura. Permite ventanas emergentes.");
       return;
     }
 
@@ -358,7 +469,6 @@ export default function MyAccountPage() {
                   <th>Subtotal</th>
                 </tr>
               </thead>
-
               <tbody>
                 ${productsRows}
               </tbody>
@@ -476,6 +586,12 @@ export default function MyAccountPage() {
             </p>
           )}
 
+          {actionMessage && (
+            <p className="mt-5 rounded-2xl bg-green-50 p-4 text-sm font-bold text-green-800">
+              {actionMessage}
+            </p>
+          )}
+
           {orders.length === 0 ? (
             <div className="mt-6 rounded-3xl bg-[#f7fbf5] p-6">
               <p className="font-bold text-slate-600">
@@ -511,22 +627,128 @@ export default function MyAccountPage() {
                       <p className="mt-1 text-sm text-slate-600">
                         {new Date(order.created_at).toLocaleString("es-DO")}
                       </p>
+
+                      <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-700">
+                        <p className="font-black text-green-700">
+                          Dirección actual
+                        </p>
+
+                        <p className="mt-2">
+                          <strong>Dirección:</strong>{" "}
+                          {order.customer?.address || "No indicada"}
+                        </p>
+
+                        <p>
+                          <strong>Sector:</strong>{" "}
+                          {order.customer?.sector || "No indicado"}
+                        </p>
+
+                        <p>
+                          <strong>Referencia:</strong>{" "}
+                          {order.customer?.reference || "No indicada"}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="md:text-right">
+                    <div className="md:min-w-[280px] md:text-right">
                       <p className="text-2xl font-black text-green-700">
                         RD${Number(order.total).toLocaleString("es-DO")}
                       </p>
 
                       <button
                         onClick={() => openInvoice(order)}
-                        className="mt-3 flex items-center justify-center gap-2 rounded-full bg-green-700 px-5 py-3 font-black text-white"
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-5 py-3 font-black text-white"
                       >
                         <ReceiptText size={18} />
                         Ver factura
                       </button>
+
+                      {canCustomerModifyOrder(order.status) ? (
+                        <div className="mt-3 space-y-3">
+                          <button
+                            onClick={() => startEditingAddress(order)}
+                            disabled={actionLoading}
+                            className="w-full rounded-full bg-lime-300 px-5 py-3 font-black text-green-950 disabled:bg-slate-300"
+                          >
+                            Cambiar dirección
+                          </button>
+
+                          <button
+                            onClick={() => cancelOrderFromAccount(order)}
+                            disabled={actionLoading}
+                            className="w-full rounded-full bg-red-50 px-5 py-3 font-black text-red-600 hover:bg-red-100 disabled:bg-slate-300"
+                          >
+                            Cancelar pedido
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-4 rounded-2xl bg-slate-100 p-3 text-left text-sm font-bold text-slate-600">
+                          Este pedido ya no puede modificarse porque está en
+                          camino, entregado o cancelado.
+                        </p>
+                      )}
                     </div>
                   </div>
+
+                  {editingOrderId === order.id &&
+                    canCustomerModifyOrder(order.status) && (
+                      <div className="mt-5 rounded-3xl bg-white p-5">
+                        <h4 className="text-xl font-black">
+                          Cambiar dirección de envío
+                        </h4>
+
+                        <p className="mt-2 text-sm font-bold text-slate-500">
+                          Solo puedes cambiar la dirección antes de que el
+                          pedido esté en camino.
+                        </p>
+
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                          <Input
+                            label="Nueva dirección *"
+                            value={newAddress}
+                            onChange={setNewAddress}
+                            full
+                          />
+
+                          <Input
+                            label="Sector"
+                            value={newSector}
+                            onChange={setNewSector}
+                          />
+
+                          <Input
+                            label="Referencia"
+                            value={newReference}
+                            onChange={setNewReference}
+                          />
+
+                          <Input
+                            label="Link de Google Maps"
+                            value={newMapsUrl}
+                            onChange={setNewMapsUrl}
+                            full
+                          />
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap gap-3">
+                          <button
+                            onClick={() => updateAddressFromAccount(order)}
+                            disabled={actionLoading}
+                            className="rounded-full bg-green-700 px-6 py-3 font-black text-white disabled:bg-slate-300"
+                          >
+                            Guardar nueva dirección
+                          </button>
+
+                          <button
+                            onClick={() => setEditingOrderId(null)}
+                            disabled={actionLoading}
+                            className="rounded-full bg-slate-100 px-6 py-3 font-black text-slate-700"
+                          >
+                            Cancelar edición
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                   <div className="mt-5 space-y-3">
                     {order.items?.map((item, index) => (
@@ -561,5 +783,30 @@ export default function MyAccountPage() {
         </a>
       </div>
     </main>
+  );
+}
+
+function Input({
+  label,
+  value,
+  onChange,
+  full = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  full?: boolean;
+}) {
+  return (
+    <div className={full ? "md:col-span-2" : ""}>
+      <label className="mb-2 block text-sm font-black">{label}</label>
+
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={label}
+        className="w-full rounded-2xl border border-green-100 bg-[#f7fbf5] px-4 py-3 outline-none"
+      />
+    </div>
   );
 }
