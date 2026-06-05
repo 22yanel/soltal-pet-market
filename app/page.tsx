@@ -682,7 +682,7 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
       </html>
     `);
 
-    invoiceWindow.document.close();
+      invoiceWindow.document.close();
   };
 
   const setField = (field: keyof OrderForm, value: string) => {
@@ -700,8 +700,9 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
 
     setForm({ ...form, [field]: value });
   };
-  
+
   return (
+    <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
     <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
       <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
