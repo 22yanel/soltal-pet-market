@@ -685,21 +685,22 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
     invoiceWindow.document.close();
   };
 
-const setField = (field: keyof OrderForm, value: string) => {
-  if (field === "fullName") {
-    const onlyLetters = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
-    setForm({ ...form, [field]: onlyLetters });
-    return;
-  }
+  const setField = (field: keyof OrderForm, value: string) => {
+    if (field === "fullName") {
+      const onlyLetters = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
+      setForm({ ...form, [field]: onlyLetters });
+      return;
+    }
 
-  if (field === "phone") {
-    const onlyNumbers = value.replace(/\D/g, "").slice(0, 10);
-    setForm({ ...form, [field]: onlyNumbers });
-    return;
-  }
+    if (field === "phone") {
+      const onlyNumbers = value.replace(/\D/g, "").slice(0, 10);
+      setForm({ ...form, [field]: onlyNumbers });
+      return;
+    }
 
-  setForm({ ...form, [field]: value });
-};
+    setForm({ ...form, [field]: value });
+  };
+  
   return (
     <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
       <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
