@@ -76,7 +76,13 @@ export default function Home() {
   const [orderStatusMessage, setOrderStatusMessage] = useState("");
   const [orderStatusResult, setOrderStatusResult] =
     useState<OrderStatusResult | null>(null);
-
+const [customerActionMessage, setCustomerActionMessage] = useState("");
+const [customerActionLoading, setCustomerActionLoading] = useState(false);
+const [showAddressEditor, setShowAddressEditor] = useState(false);
+const [newAddress, setNewAddress] = useState("");
+const [newSector, setNewSector] = useState("");
+const [newReference, setNewReference] = useState("");
+const [newMapsUrl, setNewMapsUrl] = useState("");
   const loadProducts = async () => {
     const { data, error } = await supabase
       .from("products")
@@ -306,7 +312,101 @@ export default function Home() {
       setCheckingOrder(false);
     }
   };
+const canCustomerModifyOrder = (status: string) => {
+  return status === "received" || status === "preparing";
+};
 
+const cancelCustomerOrder = async () => {
+  if (!orderStatusResult) return;
+
+  const confirmCancel = window.confirm(
+    `¿Seguro que quieres cancelar el pedido #${orderStatusResult.id}?`
+  );
+
+  if (!confirmCancel) return;
+
+  setCustomerActionLoading(true);
+  setCustomerActionMessage("Cancelando pedido...");
+
+  try {
+    const response = await fetch("/api/customer-order-actions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "cancel",
+        orderId: orderStatusResult.id,
+        phone: orderPhoneInput,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setCustomerActionMessage(result.error || "No se pudo cancelar el pedido.");
+      return;
+    }
+
+    setOrderStatusResult(result.order);
+    setCustomerActionMessage("Pedido cancelado correctamente.");
+  } catch (error) {
+    setCustomerActionMessage("Ocurrió un error cancelando el pedido.");
+  } finally {
+    setCustomerActionLoading(false);
+  }
+};
+
+const updateCustomerAddress = async () => {
+  if (!orderStatusResult) return;
+
+  if (!newAddress.trim()) {
+    setCustomerActionMessage("Escribe la nueva dirección.");
+    return;
+  }
+
+  setCustomerActionLoading(true);
+  setCustomerActionMessage("Actualizando dirección...");
+
+  try {
+    const response = await fetch("/api/customer-order-actions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "update_address",
+        orderId: orderStatusResult.id,
+        phone: orderPhoneInput,
+        address: newAddress,
+        sector: newSector,
+        reference: newReference,
+        mapsUrl: newMapsUrl,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setCustomerActionMessage(
+        result.error || "No se pudo actualizar la dirección."
+      );
+      return;
+    }
+
+    setOrderStatusResult(result.order);
+    setCustomerActionMessage("Dirección actualizada correctamente.");
+    setShowAddressEditor(false);
+    setNewAddress("");
+    setNewSector("");
+    setNewReference("");
+    setNewMapsUrl("");
+  } catch (error) {
+    setCustomerActionMessage("Ocurrió un error actualizando la dirección.");
+  } finally {
+    setCustomerActionLoading(false);
+  }
+};
   const openInvoice = (order: OrderStatusResult | null) => {
     if (!order) {
       setStatus("No hay pedido disponible para generar factura.");
@@ -1208,6 +1308,90 @@ export default function Home() {
                   >
                     Ver factura / guardar PDF
                   </button>
+                  {canCustomerModifyOrder(orderStatusResult.status) ? (
+  <div className="mt-4 space-y-3">
+    <button
+      onClick={() => {
+        setShowAddressEditor(!showAddressEditor);
+        setNewAddress(orderStatusResult.customer?.address || "");
+        setNewSector(orderStatusResult.customer?.sector || "");
+        setNewReference(orderStatusResult.customer?.reference || "");
+        setNewMapsUrl(orderStatusResult.customer?.mapsUrl || "");
+      }}
+      disabled={customerActionLoading}
+      className="w-full rounded-full bg-lime-300 px-5 py-3 font-black text-green-950 disabled:bg-slate-300"
+    >
+      Cambiar dirección
+    </button>
+
+    <button
+      onClick={cancelCustomerOrder}
+      disabled={customerActionLoading}
+      className="w-full rounded-full bg-red-50 px-5 py-3 font-black text-red-600 hover:bg-red-100 disabled:bg-slate-300"
+    >
+      Cancelar pedido
+    </button>
+  </div>
+    {showAddressEditor && canCustomerModifyOrder(orderStatusResult.status) && (
+  <div className="mt-5 rounded-3xl bg-white p-5">
+    <h4 className="text-xl font-black">Cambiar dirección de envío</h4>
+
+    <p className="mt-2 text-sm font-bold text-slate-500">
+      Solo puedes cambiar la dirección antes de que el pedido esté en camino.
+    </p>
+
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <Input
+        label="Nueva dirección *"
+        value={newAddress}
+        onChange={setNewAddress}
+        full
+      />
+
+      <Input
+        label="Sector"
+        value={newSector}
+        onChange={setNewSector}
+      />
+
+      <Input
+        label="Referencia"
+        value={newReference}
+        onChange={setNewReference}
+      />
+
+      <Input
+        label="Link de Google Maps"
+        value={newMapsUrl}
+        onChange={setNewMapsUrl}
+        full
+      />
+    </div>
+
+    <div className="mt-5 flex flex-wrap gap-3">
+      <button
+        onClick={updateCustomerAddress}
+        disabled={customerActionLoading}
+        className="rounded-full bg-green-700 px-6 py-3 font-black text-white disabled:bg-slate-300"
+      >
+        Guardar nueva dirección
+      </button>
+
+      <button
+        onClick={() => setShowAddressEditor(false)}
+        disabled={customerActionLoading}
+        className="rounded-full bg-slate-100 px-6 py-3 font-black text-slate-700"
+      >
+        Cancelar edición
+      </button>
+    </div>
+  </div>
+)}          
+) : (
+  <p className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-600">
+    Este pedido ya no puede modificarse porque está en camino, entregado o cancelado.
+  </p>
+)}
                 </div>
               </div>
 
