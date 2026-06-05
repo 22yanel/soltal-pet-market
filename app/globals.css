@@ -91,4 +91,230 @@ body { background: #f7fbf5; }
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.65);
+
+  :root {
+  --soltal-green: #15803d;
+  --soltal-dark: #052e16;
+  --soltal-lime: #bef264;
+  --soltal-bg: #f7fbf5;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(190, 242, 100, 0.22), transparent 32rem),
+    radial-gradient(circle at top right, rgba(21, 128, 61, 0.18), transparent 28rem),
+    #f7fbf5;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatSoft {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 0 rgba(190, 242, 100, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 36px rgba(190, 242, 100, 0.35);
+  }
+
+  100% {
+    box-shadow: 0 0 0 rgba(190, 242, 100, 0.1);
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+
+  100% {
+    transform: translateX(160%) skewX(-20deg);
+  }
+}
+
+@keyframes borderMove {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.75s ease both;
+}
+
+.animate-soft-float {
+  animation: floatSoft 4.5s ease-in-out infinite;
+}
+
+.futuristic-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(21, 128, 61, 0.12);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(247, 251, 245, 0.76));
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 18px 45px rgba(5, 46, 22, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.futuristic-card:hover {
+  transform: translateY(-7px);
+  border-color: rgba(21, 128, 61, 0.28);
+  box-shadow:
+    0 24px 60px rgba(5, 46, 22, 0.16),
+    0 0 32px rgba(190, 242, 100, 0.18);
+}
+
+.futuristic-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, transparent, rgba(190, 242, 100, 0.12), transparent);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.futuristic-card:hover::before {
+  animation: shine 0.9s ease;
+}
+
+.futuristic-button {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+}
+
+.futuristic-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: 0 14px 35px rgba(21, 128, 61, 0.28);
+}
+
+.futuristic-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transform: skewX(-20deg);
+}
+
+.futuristic-button:hover::after {
+  animation: shine 0.8s ease;
+}
+
+.futuristic-glass {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.42));
+  backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 24px 70px rgba(5, 46, 22, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.futuristic-border {
+  position: relative;
+}
+
+.futuristic-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    rgba(21, 128, 61, 0.6),
+    rgba(190, 242, 100, 0.9),
+    rgba(21, 128, 61, 0.6)
+  );
+  background-size: 200% 200%;
+  animation: borderMove 4s ease infinite;
+}
+
+.futuristic-input {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.futuristic-input:focus {
+  border-color: rgba(21, 128, 61, 0.45);
+  box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.1);
+  background: #ffffff;
+}
+
+.futuristic-badge {
+  background: linear-gradient(135deg, rgba(190, 242, 100, 0.95), rgba(134, 239, 172, 0.95));
+  color: #052e16;
+  box-shadow: 0 10px 24px rgba(21, 128, 61, 0.16);
+}
+
+.futuristic-dark-panel {
+  background:
+    radial-gradient(circle at top left, rgba(190, 242, 100, 0.18), transparent 18rem),
+    linear-gradient(135deg, #052e16, #064e3b 55%, #14532d);
+  box-shadow: 0 24px 70px rgba(5, 46, 22, 0.22);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 }
