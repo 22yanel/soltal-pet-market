@@ -199,13 +199,14 @@ export default function Home() {
       return "Escribe tu nombre completo.";
     }
 
-  if (!form.phone.trim()) {
-  return "Escribe tu número de teléfono.";
-}
+    if (!form.phone.trim()) {
+      return "Escribe tu número de teléfono.";
+    }
 
-if (form.phone.replace(/\D/g, "").length !== 10) {
-  return "El teléfono debe tener 10 dígitos.";
-}
+    if (form.phone.replace(/\D/g, "").length !== 10) {
+      return "El teléfono debe tener 10 dígitos.";
+    }
+
     if (!form.city.trim()) {
       return "Escribe tu ciudad.";
     }
@@ -286,6 +287,11 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
       return;
     }
 
+    if (orderPhoneInput.replace(/\D/g, "").length !== 10) {
+      setOrderStatusMessage("El teléfono debe tener 10 dígitos.");
+      return;
+    }
+
     setCheckingOrder(true);
     setOrderStatusMessage("Buscando pedido...");
     setOrderStatusResult(null);
@@ -359,6 +365,7 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
       setOrderStatusResult(result.order);
       setCustomerActionMessage("Pedido cancelado correctamente.");
       setShowAddressEditor(false);
+      await loadProducts();
     } catch (error) {
       setCustomerActionMessage("Ocurrió un error cancelando el pedido.");
     } finally {
@@ -682,7 +689,7 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
       </html>
     `);
 
-      invoiceWindow.document.close();
+    invoiceWindow.document.close();
   };
 
   const setField = (field: keyof OrderForm, value: string) => {
@@ -703,8 +710,7 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
 
   return (
     <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
-    <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
-      <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
+            <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
           <button
             onClick={() => {
@@ -871,7 +877,8 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
           </div>
         </div>
       </section>
-            <section className="relative z-10 mx-auto -mt-10 grid max-w-7xl gap-4 px-4 pb-10 md:grid-cols-3">
+
+      <section className="relative z-10 mx-auto -mt-10 grid max-w-7xl gap-4 px-4 pb-10 md:grid-cols-3">
         <Info
           icon={<CreditCard />}
           title="Compra simple"
@@ -1175,18 +1182,19 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-           <Input
-  label="Nombre completo *"
-  value={form.fullName}
-  onChange={(value) => setField("fullName", value)}
-/>
-           <Input
-  label="Teléfono *"
-  value={form.phone}
-  onChange={(value) => setField("phone", value)}
-  inputMode="numeric"
-  maxLength={10}
-/>
+                label="Nombre completo *"
+                value={form.fullName}
+                onChange={(value) => setField("fullName", value)}
+              />
+
+              <Input
+                label="Teléfono *"
+                value={form.phone}
+                onChange={(value) => setField("phone", value)}
+                inputMode="numeric"
+                maxLength={10}
+              />
+
               <Input
                 label="Correo"
                 value={form.email}
@@ -1272,18 +1280,21 @@ if (form.phone.replace(/\D/g, "").length !== 10) {
             <Input
               label="Número de pedido"
               value={orderIdInput}
-              onChange={setOrderIdInput}
+              onChange={(value) =>
+                setOrderIdInput(value.replace(/\D/g, ""))
+              }
+              inputMode="numeric"
             />
 
-           <Input
-  label="Teléfono"
-  value={orderPhoneInput}
-  onChange={(value) =>
-    setOrderPhoneInput(value.replace(/\D/g, "").slice(0, 10))
-  }
-  inputMode="numeric"
-  maxLength={10}
-/>
+            <Input
+              label="Teléfono"
+              value={orderPhoneInput}
+              onChange={(value) =>
+                setOrderPhoneInput(value.replace(/\D/g, "").slice(0, 10))
+              }
+              inputMode="numeric"
+              maxLength={10}
+            />
 
             <div className="flex items-end">
               <button
