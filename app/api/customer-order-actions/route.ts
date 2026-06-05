@@ -160,7 +160,25 @@ export async function POST(request: Request) {
           { status: 500 }
         );
       }
+// Devolver stock al inventario cuando el cliente cancela
+const orderItems = Array.isArray(order.items) ? order.items : [];
 
+for (const item of orderItems) {
+  const { data: product } = await supabaseAdmin
+    .from("products")
+    .select("stock")
+    .eq("id", item.id)
+    .single();
+
+  const currentStock = Number(product?.stock || 0);
+  const quantityToReturn = Number(item.quantity || 0);
+  const newStock = currentStock + quantityToReturn;
+
+  await supabaseAdmin
+    .from("products")
+    .update({ stock: newStock })
+    .eq("id", item.id);
+}
       await sendTelegramMessage(
         `❌ *Pedido cancelado por el cliente*
 
