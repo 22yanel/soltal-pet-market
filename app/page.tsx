@@ -199,10 +199,13 @@ export default function Home() {
       return "Escribe tu nombre completo.";
     }
 
-    if (!form.phone.trim()) {
-      return "Escribe tu número de teléfono.";
-    }
+  if (!form.phone.trim()) {
+  return "Escribe tu número de teléfono.";
+}
 
+if (form.phone.replace(/\D/g, "").length !== 10) {
+  return "El teléfono debe tener 10 dígitos.";
+}
     if (!form.city.trim()) {
       return "Escribe tu ciudad.";
     }
@@ -682,10 +685,21 @@ export default function Home() {
     invoiceWindow.document.close();
   };
 
-  const setField = (field: keyof OrderForm, value: string) => {
-    setForm({ ...form, [field]: value });
-  };
+const setField = (field: keyof OrderForm, value: string) => {
+  if (field === "fullName") {
+    const onlyLetters = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
+    setForm({ ...form, [field]: onlyLetters });
+    return;
+  }
 
+  if (field === "phone") {
+    const onlyNumbers = value.replace(/\D/g, "").slice(0, 10);
+    setForm({ ...form, [field]: onlyNumbers });
+    return;
+  }
+
+  setForm({ ...form, [field]: value });
+};
   return (
     <main className="min-h-screen bg-[#f7fbf5] text-slate-900">
       <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
@@ -1159,17 +1173,18 @@ export default function Home() {
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-                label="Nombre completo *"
-                value={form.fullName}
-                onChange={(value) => setField("fullName", value)}
-              />
-
-              <Input
-                label="Teléfono *"
-                value={form.phone}
-                onChange={(value) => setField("phone", value)}
-              />
-
+           <Input
+  label="Nombre completo *"
+  value={form.fullName}
+  onChange={(value) => setField("fullName", value)}
+/>
+           <Input
+  label="Teléfono *"
+  value={form.phone}
+  onChange={(value) => setField("phone", value)}
+  inputMode="numeric"
+  maxLength={10}
+/>
               <Input
                 label="Correo"
                 value={form.email}
@@ -1258,11 +1273,15 @@ export default function Home() {
               onChange={setOrderIdInput}
             />
 
-            <Input
-              label="Teléfono"
-              value={orderPhoneInput}
-              onChange={setOrderPhoneInput}
-            />
+           <Input
+  label="Teléfono"
+  value={orderPhoneInput}
+  onChange={(value) =>
+    setOrderPhoneInput(value.replace(/\D/g, "").slice(0, 10))
+  }
+  inputMode="numeric"
+  maxLength={10}
+/>
 
             <div className="flex items-end">
               <button
@@ -1498,11 +1517,15 @@ function Input({
   value,
   onChange,
   full = false,
+  inputMode,
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   full?: boolean;
+  inputMode?: "text" | "numeric" | "tel" | "email" | "url";
+  maxLength?: number;
 }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>
@@ -1512,6 +1535,8 @@ function Input({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={label}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className="w-full rounded-2xl border border-green-100 bg-[#f7fbf5] px-4 py-3 outline-none"
       />
     </div>
