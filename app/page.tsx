@@ -1332,7 +1332,66 @@ const updateCustomerAddress = async () => {
       Cancelar pedido
     </button>
   </div>
-    {showAddressEditor && canCustomerModifyOrder(orderStatusResult.status) && (
+   {showAddressEditor && canCustomerModifyOrder(orderStatusResult.status) && (
+  <div className="mt-5 rounded-3xl bg-white p-5">
+    <h4 className="text-xl font-black">Cambiar dirección de envío</h4>
+
+    <p className="mt-2 text-sm font-bold text-slate-500">
+      Solo puedes cambiar la dirección antes de que el pedido esté en camino.
+    </p>
+
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <Input
+        label="Nueva dirección *"
+        value={newAddress}
+        onChange={setNewAddress}
+        full
+      />
+
+      <Input
+        label="Sector"
+        value={newSector}
+        onChange={setNewSector}
+      />
+
+      <Input
+        label="Referencia"
+        value={newReference}
+        onChange={setNewReference}
+      />
+
+      <Input
+        label="Link de Google Maps"
+        value={newMapsUrl}
+        onChange={setNewMapsUrl}
+        full
+      />
+    </div>
+
+    <div className="mt-5 flex flex-wrap gap-3">
+      <button
+        onClick={updateCustomerAddress}
+        disabled={customerActionLoading}
+        className="rounded-full bg-green-700 px-6 py-3 font-black text-white disabled:bg-slate-300"
+      >
+        Guardar nueva dirección
+      </button>
+
+      <button
+        onClick={() => setShowAddressEditor(false)}
+        disabled={customerActionLoading}
+        className="rounded-full bg-slate-100 px-6 py-3 font-black text-slate-700"
+      >
+        Cancelar edición
+      </button>
+    </div>
+  </div>
+)}
+  {customerActionMessage && (
+  <p className="mt-4 rounded-2xl bg-green-50 p-4 text-sm font-bold text-green-800">
+    {customerActionMessage}
+  </p>
+)}                
   <div className="mt-5 rounded-3xl bg-white p-5">
     <h4 className="text-xl font-black">Cambiar dirección de envío</h4>
 
