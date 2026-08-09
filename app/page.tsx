@@ -778,9 +778,9 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-8 text-white/85">
-              Compra alimentos, cuidado, accesorios y productos esenciales para
-              tus mascotas. Haz tu pedido online, recibe factura por correo y
-              consulta el estado cuando quieras.
+Encuentra alimentos, accesorios y productos para el cuidado de tus mascotas en un
+solo lugar. Haz tu pedido en línea, recibe tu factura por correo y consulta el
+estado de tu compra cuando quieras.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
