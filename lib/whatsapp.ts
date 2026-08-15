@@ -11,7 +11,7 @@ function getWhatsAppConfig() {
   return {
     accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
-    apiVersion: process.env.WHATSAPP_API_VERSION || "v23.0",
+    apiVersion: process.env.WHATSAPP_API_VERSION || "v26.0",
   };
 }
 
