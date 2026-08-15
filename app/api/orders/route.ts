@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { notifyWhatsAppNumbers } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -139,15 +140,7 @@ async function sendInvoiceEmail(order: any) {
   }
 }
 
-async function sendTelegramOrderNotification(order: any) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-
-  if (!botToken || !chatId) {
-    console.log("Faltan variables de Telegram.");
-    return;
-  }
-
+async function sendWhatsAppOrderNotification(order: any) {
   const customer = order.customer || {};
   const items = order.items || [];
 
@@ -183,25 +176,7 @@ async function sendTelegramOrderNotification(order: any) {
 ${productsText || "No indicado"}
 `;
 
-  const response = await fetch(
-    `https://api.telegram.org/bot${botToken}/sendMessage`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: "Markdown",
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.log("Error enviando mensaje a Telegram:", errorText);
-  }
+  await notifyWhatsAppNumbers(message.trim());
 }
 
 export async function POST(request: Request) {
@@ -289,13 +264,13 @@ export async function POST(request: Request) {
   }
 
   await sendInvoiceEmail(order);
-  await sendTelegramOrderNotification(order);
+  await sendWhatsAppOrderNotification(order);
 
   return NextResponse.json(
     {
       ok: true,
       message:
-        "Pedido creado correctamente, stock actualizado, factura enviada y Telegram notificado.",
+        "Pedido creado correctamente, stock actualizado, factura enviada y WhatsApp notificado.",
       order,
     },
     {
