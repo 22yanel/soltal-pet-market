@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { notifyWhatsAppNumbers } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,36 +11,6 @@ function normalizePhone(phone: string) {
 
 function canCustomerModifyOrder(status: string) {
   return status === "received" || status === "preparing";
-}
-
-async function sendTelegramMessage(text: string) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-
-  if (!botToken || !chatId) {
-    console.log("Faltan variables de Telegram.");
-    return;
-  }
-
-  const response = await fetch(
-    `https://api.telegram.org/bot${botToken}/sendMessage`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "Markdown",
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.log("Error enviando Telegram:", errorText);
-  }
 }
 
 async function sendCustomerEmail(order: any, subject: string, message: string) {
@@ -179,7 +150,7 @@ for (const item of orderItems) {
     .update({ stock: newStock })
     .eq("id", item.id);
 }
-      await sendTelegramMessage(
+      await notifyWhatsAppNumbers(
         `❌ *Pedido cancelado por el cliente*
 
 📦 Pedido: #${orderId}
@@ -236,7 +207,7 @@ for (const item of orderItems) {
         );
       }
 
-      await sendTelegramMessage(
+      await notifyWhatsAppNumbers(
         `📍 *Dirección actualizada por el cliente*
 
 📦 Pedido: #${orderId}
