@@ -9,9 +9,8 @@ function normalizeWhatsAppNumber(value: string) {
 
 function getWhatsAppConfig() {
   return {
-    accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
-    apiVersion: process.env.WHATSAPP_API_VERSION || "v26.0",
+    gatewayUrl: String(process.env.OPENWA_GATEWAY_URL || "").replace(/\/$/, ""),
+    apiKey: process.env.OPENWA_API_KEY,
   };
 }
 
@@ -35,11 +34,11 @@ export function isAuthorizedWhatsAppSender(phone: string) {
 }
 
 export async function sendWhatsAppText({ to, text }: WhatsAppTextMessage) {
-  const { accessToken, phoneNumberId, apiVersion } = getWhatsAppConfig();
+  const { gatewayUrl, apiKey } = getWhatsAppConfig();
   const normalizedTo = normalizeWhatsAppNumber(to);
 
-  if (!accessToken || !phoneNumberId) {
-    console.log("Faltan WHATSAPP_ACCESS_TOKEN o WHATSAPP_PHONE_NUMBER_ID.");
+  if (!gatewayUrl || !apiKey) {
+    console.log("Faltan OPENWA_GATEWAY_URL u OPENWA_API_KEY.");
     return false;
   }
 
@@ -48,30 +47,19 @@ export async function sendWhatsAppText({ to, text }: WhatsAppTextMessage) {
     return false;
   }
 
-  const response = await fetch(
-    `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: normalizedTo,
-        type: "text",
-        text: {
-          preview_url: true,
-          body: text,
-        },
-      }),
-    }
-  );
+  const response = await fetch(`${gatewayUrl}/send`, {
+    method: "POST",
+    headers: {
+      "X-API-Key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ to: normalizedTo, text }),
+    signal: AbortSignal.timeout(15_000),
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.log("Error enviando mensaje a WhatsApp:", errorText);
+    console.log("Error enviando mensaje mediante OpenWA:", errorText);
     return false;
   }
 

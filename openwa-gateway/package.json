@@ -1,0 +1,14 @@
+{
+  "name": "soltal-pet-market-openwa-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Puente de WhatsApp para Soltal Pet Market",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@open-wa/wa-automate": "4.76.0",
+    "dotenv": "16.4.7",
+    "express": "4.21.2"
+  }
+}

@@ -76,18 +76,17 @@ function getStatusFromText(text: string) {
   return null;
 }
 
-function getIncomingText(body: any) {
-  return body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-}
+function hasValidOpenWASignature(
+  rawBody: string,
+  signatureHeader: string | null
+) {
+  const webhookSecret = process.env.OPENWA_WEBHOOK_SECRET;
 
-function hasValidMetaSignature(rawBody: string, signatureHeader: string | null) {
-  const appSecret = process.env.WHATSAPP_APP_SECRET;
-
-  if (!appSecret || !signatureHeader?.startsWith("sha256=")) {
+  if (!webhookSecret || !signatureHeader?.startsWith("sha256=")) {
     return false;
   }
 
-  const expected = `sha256=${createHmac("sha256", appSecret)
+  const expected = `sha256=${createHmac("sha256", webhookSecret)
     .update(rawBody)
     .digest("hex")}`;
   const receivedBuffer = Buffer.from(signatureHeader);
@@ -166,21 +165,8 @@ async function sendStatusEmail(order: any, newStatus: string) {
   }
 }
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const mode = url.searchParams.get("hub.mode");
-  const token = url.searchParams.get("hub.verify_token");
-  const challenge = url.searchParams.get("hub.challenge");
-
-  if (
-    mode === "subscribe" &&
-    token &&
-    token === process.env.WHATSAPP_VERIFY_TOKEN
-  ) {
-    return new Response(challenge || "", { status: 200 });
-  }
-
-  return new Response("Verification failed", { status: 403 });
+export async function GET() {
+  return NextResponse.json({ ok: true, channel: "openwa" });
 }
 
 export async function POST(request: Request) {
@@ -188,23 +174,22 @@ export async function POST(request: Request) {
     const rawBody = await request.text();
 
     if (
-      !hasValidMetaSignature(
+      !hasValidOpenWASignature(
         rawBody,
-        request.headers.get("x-hub-signature-256")
+        request.headers.get("x-openwa-signature")
       )
     ) {
       return NextResponse.json(
-        { error: "Firma de Meta no válida." },
+        { error: "Firma de OpenWA no válida." },
         { status: 401 }
       );
     }
 
     const body = JSON.parse(rawBody);
-    const message = getIncomingText(body);
-    const from = String(message?.from || "");
-    const text = String(message?.text?.body || "");
+    const from = String(body?.message?.from || "").replace(/@c\.us$/i, "");
+    const text = String(body?.message?.body || "");
 
-    if (!from || !text) {
+    if (body?.event !== "message.received" || !from || !text) {
       return NextResponse.json({ ok: true });
     }
 
@@ -265,7 +250,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.log("Error en webhook WhatsApp:", error);
+    console.log("Error en webhook OpenWA:", error);
     return NextResponse.json({ ok: true });
   }
 }
