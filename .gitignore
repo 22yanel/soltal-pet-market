@@ -8,3 +8,8 @@ next-env.d.ts
 npm-debug.log*
 openwa-gateway/session-data/
 openwa-gateway/*.data.json
+openwa-gateway/.node-persist/
+openwa-gateway/*.log
+openwa-gateway/*.tgz
+openwa-gateway/pnpm-lock.yaml
+openwa-gateway/pnpm-workspace.yaml

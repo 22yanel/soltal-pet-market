@@ -34,10 +34,10 @@ Admin:
 http://localhost:3000/admin
 ```
 
-## WhatsApp mediante OpenWA
+## WhatsApp mediante puente gratuito
 
-OpenWA funciona como un puente separado que mantiene activa la sesión de
-WhatsApp Web. Configura estas variables privadas en Vercel:
+El conector basado en Baileys funciona como un puente separado que mantiene
+activa una sesión vinculada de WhatsApp. Configura estas variables privadas en Vercel:
 
 ```txt
 OPENWA_GATEWAY_URL=https://URL-PUBLICA-DEL-PUENTE
@@ -53,7 +53,7 @@ webhook del sitio:
 ```txt
 PORT=8080
 OPENWA_SESSION_ID=soltal-pet-market
-OPENWA_HEADLESS=false
+WHATSAPP_PHONE_NUMBER=18299632299
 OPENWA_API_KEY=CLAVE-LARGA-Y-ALEATORIA
 OPENWA_WEBHOOK_URL=https://TU-DOMINIO.com/api/whatsapp
 OPENWA_WEBHOOK_SECRET=OTRA-CLAVE-LARGA-Y-ALEATORIA
@@ -66,16 +66,15 @@ npm install
 npm start
 ```
 
-En el primer inicio aparecerá un código QR. Escanéalo desde WhatsApp en
-**Dispositivos vinculados**. El puente debe permanecer encendido y estar
+En el primer inicio aparecerá un código de vinculación. En WhatsApp abre
+**Dispositivos vinculados → Vincular dispositivo → Vincular con número de
+teléfono** e introduce ese código. El puente debe permanecer encendido y estar
 expuesto únicamente mediante HTTPS; nunca publiques el puerto sin la clave.
-Después del primer enlace puedes establecer `OPENWA_HEADLESS=true` para que
-WhatsApp se ejecute en segundo plano.
 
 Los números deben incluir código de país y solo dígitos. `WHATSAPP_NOTIFY_NUMBERS`
 acepta varios destinatarios separados por comas. Solo los números incluidos en
 `WHATSAPP_ADMIN_NUMBERS` pueden cambiar estados escribiendo, por ejemplo,
 `en camino 12` o `entregado 12`.
 
-OpenWA no es una integración oficial de Meta. Usa un número dedicado, evita
+Este puente no es una integración oficial de Meta. Usa un número dedicado, evita
 mensajes masivos y conserva Telegram como canal de respaldo.

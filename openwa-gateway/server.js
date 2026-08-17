@@ -2,11 +2,11 @@ require("dotenv").config();
 
 const crypto = require("crypto");
 const express = require("express");
-const { create } = require("@open-wa/wa-automate");
+const path = require("path");
 
 const port = Number(process.env.PORT || 8080);
 const sessionId = process.env.OPENWA_SESSION_ID || "soltal-pet-market";
-const headless = process.env.OPENWA_HEADLESS === "true";
+const phoneNumber = normalizeNumber(process.env.WHATSAPP_PHONE_NUMBER);
 const apiKey = process.env.OPENWA_API_KEY;
 const webhookUrl = process.env.OPENWA_WEBHOOK_URL;
 const webhookSecret = process.env.OPENWA_WEBHOOK_SECRET;
@@ -22,6 +22,7 @@ app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb" }));
 
 let whatsappClient = null;
+let reconnectTimer = null;
 
 function safeEqual(value, expected) {
   const valueBuffer = Buffer.from(String(value || ""));
@@ -93,8 +94,8 @@ app.post("/send", async (request, response) => {
   }
 
   try {
-    const messageId = await whatsappClient.sendText(`${to}@c.us`, text);
-    return response.json({ ok: true, messageId });
+    const sentMessage = await whatsappClient.sendMessage(`${to}@s.whatsapp.net`, { text });
+    return response.json({ ok: true, messageId: sentMessage.key?.id });
   } catch (error) {
     console.error("No se pudo enviar el mensaje:", error.message);
     return response.status(502).json({ error: "No se pudo enviar el mensaje." });
@@ -105,26 +106,85 @@ app.listen(port, "0.0.0.0", () => {
   console.log(`Puente OpenWA escuchando en el puerto ${port}.`);
 });
 
-create({
-  sessionId,
-  sessionDataPath: "session-data",
-  multiDevice: true,
-  headless,
-  authTimeout: 0,
-  qrTimeout: 0,
-  cacheEnabled: false,
-  killProcessOnBrowserClose: false,
-})
-  .then((client) => {
-    whatsappClient = client;
-    client.onMessage((message) => {
-      deliverIncomingMessage(message).catch((error) =>
+async function initializeClient() {
+  const baileys = await import("@whiskeysockets/baileys");
+  const loggerModule = await import("pino");
+  const logger = loggerModule.default({ level: "silent" });
+  const authPath = path.join("session-data", sessionId);
+  const { state, saveCreds } = await baileys.useMultiFileAuthState(authPath);
+  const { version } = await baileys.fetchLatestBaileysVersion();
+  const client = baileys.default({
+    version,
+    auth: state,
+    logger,
+    browser: baileys.Browsers.windows("Chrome"),
+    markOnlineOnConnect: false,
+    syncFullHistory: false,
+  });
+
+  client.ev.on("creds.update", saveCreds);
+  client.ev.on("messages.upsert", ({ messages, type }) => {
+    if (type !== "notify") return;
+    for (const item of messages) {
+      const jid = item.key?.remoteJid || "";
+      const body =
+        item.message?.conversation ||
+        item.message?.extendedTextMessage?.text ||
+        item.message?.imageMessage?.caption ||
+        item.message?.videoMessage?.caption ||
+        "";
+      deliverIncomingMessage({
+        id: item.key?.id,
+        from: jid,
+        body,
+        type: "chat",
+        t: Number(item.messageTimestamp || Math.floor(Date.now() / 1000)),
+        fromMe: Boolean(item.key?.fromMe),
+        isGroupMsg: jid.endsWith("@g.us"),
+      }).catch((error) =>
         console.error("No se pudo entregar el mensaje entrante:", error.message)
       );
-    });
-    console.log("WhatsApp conectado para Soltal Pet Market.");
-  })
-  .catch((error) => {
-    console.error("OpenWA no pudo iniciar:", error);
-    process.exitCode = 1;
+    }
   });
+
+  client.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
+    if (connection === "open") {
+      whatsappClient = client;
+      console.log("WhatsApp conectado para Soltal Pet Market.");
+      return;
+    }
+    if (connection !== "close") return;
+    whatsappClient = null;
+    const statusCode = lastDisconnect?.error?.output?.statusCode;
+    if (statusCode === baileys.DisconnectReason.loggedOut) {
+      console.error("WhatsApp cerró la sesión. Es necesario vincularlo otra vez.");
+      return;
+    }
+    clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(() => initializeClient().catch(console.error), 3_000);
+  });
+
+  if (!state.creds.registered) {
+    if (!phoneNumber) {
+      throw new Error("Configura WHATSAPP_PHONE_NUMBER con el número que se vinculará.");
+    }
+    const requestCode = async (attempt = 1) => {
+      try {
+        const code = await client.requestPairingCode(phoneNumber);
+        console.log(`CÓDIGO DE VINCULACIÓN: ${code.match(/.{1,4}/g).join("-")}`);
+      } catch (error) {
+        if (attempt < 4) {
+          setTimeout(() => requestCode(attempt + 1), 5_000);
+          return;
+        }
+        console.error("No se pudo generar el código de vinculación:", error.message);
+      }
+    };
+    setTimeout(() => requestCode(), 5_000);
+  }
+}
+
+initializeClient().catch((error) => {
+  console.error("El motor de WhatsApp no pudo iniciar:", error);
+  process.exitCode = 1;
+});
