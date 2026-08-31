@@ -12,9 +12,39 @@ type OrderItem = {
   quantity: number;
 };
 
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatMoney(value: unknown) {
+  return `RD$${Number(value || 0).toLocaleString("es-DO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatOrderDate(value: unknown) {
+  const date = new Date(String(value || ""));
+
+  if (Number.isNaN(date.getTime())) {
+    return "Fecha no disponible";
+  }
+
+  return date.toLocaleString("es-DO", {
+    timeZone: "America/Santo_Domingo",
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+}
+
 function buildInvoiceEmail(order: any) {
   const customer = order.customer || {};
-  const items = order.items || [];
+  const items = Array.isArray(order.items) ? order.items : [];
 
   const statusLabels: Record<string, string> = {
     received: "Recibido",
@@ -24,82 +54,169 @@ function buildInvoiceEmail(order: any) {
     cancelled: "Cancelado",
   };
 
+  const status = statusLabels[order.status] || order.status || "Recibido";
+  const customerName = customer.fullName || "Cliente";
+  const mapsUrl = typeof customer.mapsUrl === "string" ? customer.mapsUrl.trim() : "";
+  const safeMapsUrl = /^https?:\/\//i.test(mapsUrl) ? escapeHtml(mapsUrl) : "";
+
   const productsRows = items
-    .map(
-      (item: any) => `
+    .map((item: any, index: number) => {
+      const quantity = Number(item.quantity || 0);
+      const price = Number(item.price || 0);
+
+      return `
         <tr>
-          <td style="padding:12px;border-bottom:1px solid #e5e7eb;">${item.name}</td>
-          <td style="padding:12px;border-bottom:1px solid #e5e7eb;">${item.quantity}</td>
-          <td style="padding:12px;border-bottom:1px solid #e5e7eb;">RD$${Number(item.price).toLocaleString("es-DO")}</td>
-          <td style="padding:12px;border-bottom:1px solid #e5e7eb;">RD$${Number(item.price * item.quantity).toLocaleString("es-DO")}</td>
+          <td style="padding:14px 12px;border-bottom:1px solid #e5e7eb;color:#64748b;font-size:13px;vertical-align:top;">${index + 1}</td>
+          <td style="padding:14px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:700;vertical-align:top;">${escapeHtml(item.name || "Producto")}</td>
+          <td style="padding:14px 12px;border-bottom:1px solid #e5e7eb;color:#334155;font-size:14px;text-align:center;vertical-align:top;">${quantity}</td>
+          <td style="padding:14px 12px;border-bottom:1px solid #e5e7eb;color:#334155;font-size:14px;text-align:right;vertical-align:top;white-space:nowrap;">${formatMoney(price)}</td>
+          <td style="padding:14px 12px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:800;text-align:right;vertical-align:top;white-space:nowrap;">${formatMoney(price * quantity)}</td>
         </tr>
-      `
-    )
+      `;
+    })
     .join("");
 
+  const mapsButton = safeMapsUrl
+    ? `
+      <tr>
+        <td style="padding-top:14px;">
+          <a href="${safeMapsUrl}" target="_blank" rel="noreferrer" style="display:inline-block;background:#ffffff;border:1px solid #bbf7d0;color:#166534;text-decoration:none;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:800;">
+            Ver ubicación en Google Maps
+          </a>
+        </td>
+      </tr>
+    `
+    : "";
+
   return `
-    <div style="font-family:Arial,sans-serif;background:#f7fbf5;padding:30px;color:#0f172a;">
-      <div style="max-width:850px;margin:auto;background:#ffffff;border-radius:24px;padding:32px;">
-        <div style="border-bottom:3px solid #15803d;padding-bottom:20px;margin-bottom:24px;">
-          <h1 style="color:#15803d;font-size:28px;font-weight:900;margin:0;">
-            SOLTAL PET MARKET
-          </h1>
-
-          <p style="margin:6px 0 0;color:#64748b;">
-            Todo para tus animales en un solo lugar
-          </p>
-
-          <h2 style="margin:22px 0 0;font-size:26px;">
-            Factura #${order.id}
-          </h2>
-
-          <p style="margin:6px 0;color:#64748b;">
-            Fecha: ${new Date(order.created_at).toLocaleString("es-DO")}
-          </p>
-
-          <span style="display:inline-block;margin-top:8px;padding:8px 14px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:800;">
-            Estado: ${statusLabels[order.status] || order.status}
-          </span>
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Factura Soltal Pet Market</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f4f7f4;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+        <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+          Recibimos tu pedido #${escapeHtml(order.id)} en Soltal Pet Market por ${formatMoney(order.total)}.
         </div>
 
-        <div style="background:#f7fbf5;padding:18px;border-radius:18px;margin-bottom:20px;">
-          <h3 style="margin-top:0;color:#15803d;">Datos del cliente</h3>
-          <p><strong>Nombre:</strong> ${customer.fullName || "No indicado"}</p>
-          <p><strong>Teléfono:</strong> ${customer.phone || "No indicado"}</p>
-          <p><strong>Correo:</strong> ${customer.email || "No indicado"}</p>
-          <p><strong>Ciudad:</strong> ${customer.city || "No indicado"}</p>
-          <p><strong>Sector:</strong> ${customer.sector || "No indicado"}</p>
-          <p><strong>Dirección:</strong> ${customer.address || "No indicado"}</p>
-          <p><strong>Referencia:</strong> ${customer.reference || "No indicado"}</p>
-          <p><strong>Google Maps:</strong> ${customer.mapsUrl || "No indicado"}</p>
-        </div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f7f4;margin:0;padding:0;">
+          <tr>
+            <td align="center" style="padding:28px 12px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:720px;background:#ffffff;border:1px solid #e5e7eb;border-radius:20px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.06);">
+                <tr>
+                  <td style="background:#14532d;padding:28px 30px;color:#ffffff;">
+                    <div style="font-size:25px;line-height:1.2;font-weight:900;letter-spacing:.3px;">SOLTAL PET MARKET</div>
+                    <div style="font-size:13px;line-height:1.5;color:#dcfce7;margin-top:6px;">Todo para tus animales en un solo lugar</div>
+                  </td>
+                </tr>
 
-        <h3>Productos comprados</h3>
+                <tr>
+                  <td style="padding:30px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="font-size:14px;color:#64748b;padding-bottom:8px;">Hola, ${escapeHtml(customerName)}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:25px;line-height:1.25;font-weight:900;color:#0f172a;padding-bottom:8px;">¡Recibimos tu pedido!</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:14px;line-height:1.65;color:#475569;padding-bottom:22px;">
+                          Gracias por comprar en Soltal Pet Market. A continuación encontrarás el resumen completo de tu compra. Conserva este correo como comprobante de tu pedido.
+                        </td>
+                      </tr>
+                    </table>
 
-        <table style="width:100%;border-collapse:collapse;margin-top:20px;">
-          <thead>
-            <tr>
-              <th style="text-align:left;background:#14532d;color:white;padding:12px;">Producto</th>
-              <th style="text-align:left;background:#14532d;color:white;padding:12px;">Cantidad</th>
-              <th style="text-align:left;background:#14532d;color:white;padding:12px;">Precio</th>
-              <th style="text-align:left;background:#14532d;color:white;padding:12px;">Subtotal</th>
-            </tr>
-          </thead>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;margin-bottom:24px;">
+                      <tr>
+                        <td style="padding:18px;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="font-size:12px;color:#64748b;padding-bottom:5px;">NÚMERO DE PEDIDO</td>
+                              <td align="right" style="font-size:12px;color:#64748b;padding-bottom:5px;">ESTADO</td>
+                            </tr>
+                            <tr>
+                              <td style="font-size:21px;font-weight:900;color:#0f172a;">#${escapeHtml(order.id)}</td>
+                              <td align="right"><span style="display:inline-block;padding:7px 11px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px;font-weight:900;">${escapeHtml(status)}</span></td>
+                            </tr>
+                            <tr>
+                              <td colspan="2" style="font-size:12px;color:#64748b;padding-top:10px;">${escapeHtml(formatOrderDate(order.created_at))}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
 
-          <tbody>
-            ${productsRows}
-          </tbody>
+                    <div style="font-size:16px;font-weight:900;color:#14532d;margin-bottom:12px;">Datos de entrega</div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f0fdf4;border:1px solid #dcfce7;border-radius:14px;margin-bottom:26px;">
+                      <tr>
+                        <td style="padding:18px;font-size:14px;line-height:1.7;color:#334155;">
+                          <strong style="color:#0f172a;">${escapeHtml(customer.fullName || "No indicado")}</strong><br />
+                          ${escapeHtml(customer.phone || "Teléfono no indicado")}<br />
+                          ${escapeHtml(customer.email || "Correo no indicado")}<br /><br />
+                          ${escapeHtml(customer.address || "Dirección no indicada")}<br />
+                          ${escapeHtml(customer.sector || "Sector no indicado")}${customer.city ? `, ${escapeHtml(customer.city)}` : ""}<br />
+                          ${customer.reference ? `<span style="color:#64748b;">Referencia: ${escapeHtml(customer.reference)}</span>` : ""}
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">${mapsButton}</table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div style="font-size:16px;font-weight:900;color:#14532d;margin-bottom:12px;">Detalle de la compra</div>
+                    <div style="width:100%;overflow-x:auto;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                        <thead>
+                          <tr style="background:#f8fafc;">
+                            <th style="padding:11px 12px;text-align:left;color:#64748b;font-size:11px;letter-spacing:.3px;">#</th>
+                            <th style="padding:11px 12px;text-align:left;color:#64748b;font-size:11px;letter-spacing:.3px;">PRODUCTO</th>
+                            <th style="padding:11px 12px;text-align:center;color:#64748b;font-size:11px;letter-spacing:.3px;">CANT.</th>
+                            <th style="padding:11px 12px;text-align:right;color:#64748b;font-size:11px;letter-spacing:.3px;">PRECIO</th>
+                            <th style="padding:11px 12px;text-align:right;color:#64748b;font-size:11px;letter-spacing:.3px;">SUBTOTAL</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${productsRows || `<tr><td colspan="5" style="padding:18px;color:#64748b;text-align:center;">No hay productos registrados.</td></tr>`}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:20px;">
+                      <tr>
+                        <td></td>
+                        <td width="290" style="background:#14532d;border-radius:14px;padding:18px 20px;color:#ffffff;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="font-size:13px;color:#dcfce7;">TOTAL DEL PEDIDO</td>
+                              <td align="right" style="font-size:22px;font-weight:900;white-space:nowrap;">${formatMoney(order.total)}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px;background:#fffbeb;border:1px solid #fde68a;border-radius:14px;">
+                      <tr>
+                        <td style="padding:16px 18px;font-size:13px;line-height:1.6;color:#78350f;">
+                          <strong>Importante:</strong> guarda el número de pedido <strong>#${escapeHtml(order.id)}</strong>. Te servirá para identificar tu compra y consultar su estado.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="background:#f8fafc;border-top:1px solid #e5e7eb;padding:22px 30px;text-align:center;font-size:12px;line-height:1.6;color:#64748b;">
+                    Gracias por confiar en <strong style="color:#14532d;">Soltal Pet Market</strong>.<br />
+                    Este correo fue generado automáticamente al registrar tu pedido.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
         </table>
-
-        <div style="margin-top:24px;text-align:right;font-size:28px;font-weight:900;color:#15803d;">
-          Total: RD$${Number(order.total).toLocaleString("es-DO")}
-        </div>
-
-        <p style="margin-top:30px;color:#64748b;text-align:center;">
-          Gracias por comprar en Soltal Pet Market. Guarda tu número de pedido para consultar el estado.
-        </p>
-      </div>
-    </div>
+      </body>
+    </html>
   `;
 }
 
@@ -107,6 +224,7 @@ async function sendInvoiceEmail(order: any) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
   const customerEmail = order.customer?.email;
+  const fromEmail = process.env.INVOICE_FROM_EMAIL || "Soltal Pet Market <onboarding@resend.dev>";
 
   if (!resendApiKey) {
     console.log("Falta RESEND_API_KEY.");
@@ -127,9 +245,9 @@ async function sendInvoiceEmail(order: any) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Soltal Pet Market <onboarding@resend.dev>",
+      from: fromEmail,
       to: recipients,
-      subject: `Factura Soltal Pet Market - Pedido #${order.id}`,
+      subject: `Pedido #${order.id} confirmado | Soltal Pet Market`,
       html: buildInvoiceEmail(order),
     }),
   });
