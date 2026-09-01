@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, PackageSearch, PawPrint } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Clock3,
+  PackageCheck,
+  PackageSearch,
+  PawPrint,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import type { CartItem, OrderForm } from "@/lib/types";
 
 const statusLabels: Record<string, string> = {
@@ -144,6 +153,8 @@ export default function ConsultarPedidoPage() {
           {message && <p className="mt-5 text-sm font-bold text-slate-600">{message}</p>}
 
           {order && <div className="mt-7 rounded-3xl bg-[#f7fbf5] p-5 md:p-7">
+            <OrderProgress status={order.status} />
+
             <div className="flex flex-col justify-between gap-5 md:flex-row">
               <div><p className="font-black text-green-700">Pedido #{order.id}</p><h2 className="mt-1 text-2xl font-black">Estado: {statusLabels[order.status] || order.status}</h2><p className="mt-1 text-sm text-slate-600">Fecha: {new Date(order.created_at).toLocaleString("es-DO")}</p>
                 <div className="mt-4 rounded-2xl bg-white p-4 text-sm"><p className="font-black text-green-700">Dirección actual</p><p className="mt-2"><b>Dirección:</b> {order.customer?.address || "No indicada"}</p><p><b>Sector:</b> {order.customer?.sector || "No indicado"}</p><p><b>Referencia:</b> {order.customer?.reference || "No indicada"}</p></div>
@@ -160,6 +171,95 @@ export default function ConsultarPedidoPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+const orderSteps = [
+  { status: "received", label: "Recibido", icon: PackageCheck },
+  { status: "preparing", label: "Preparando", icon: Clock3 },
+  { status: "on_the_way", label: "En camino", icon: Truck },
+  { status: "delivered", label: "Entregado", icon: Check },
+];
+
+function OrderProgress({ status }: { status: string }) {
+  if (status === "cancelled") {
+    return (
+      <div className="mb-7 flex items-center gap-4 rounded-3xl border border-red-100 bg-red-50 p-5 text-red-700">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+          <XCircle size={26} />
+        </span>
+        <div>
+          <p className="text-sm font-black uppercase tracking-wider">Seguimiento del pedido</p>
+          <p className="text-xl font-black">Pedido cancelado</p>
+          <p className="mt-1 text-sm text-red-600">Este pedido ya no continuará hacia la entrega.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const activeIndex = Math.max(
+    0,
+    orderSteps.findIndex((step) => step.status === status)
+  );
+  const progress = (activeIndex / (orderSteps.length - 1)) * 100;
+
+  return (
+    <div className="mb-7 rounded-3xl border border-green-100 bg-white p-5 md:p-6">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-black uppercase tracking-wider text-green-700">
+            Seguimiento del pedido
+          </p>
+          <p className="mt-1 text-sm font-bold text-slate-500">
+            Te mostramos el progreso de tu compra.
+          </p>
+        </div>
+        <span className="rounded-full bg-green-50 px-4 py-2 text-sm font-black text-green-700">
+          {orderSteps[activeIndex].label}
+        </span>
+      </div>
+
+      <div className="relative">
+        <div className="absolute left-6 right-6 top-6 hidden h-2 rounded-full bg-slate-100 sm:block" />
+        <div
+          className="absolute left-6 top-6 hidden h-2 rounded-full bg-gradient-to-r from-green-700 to-lime-400 transition-all duration-700 sm:block"
+          style={{ width: `calc((100% - 3rem) * ${progress / 100})` }}
+        />
+
+        <div className="relative grid gap-3 sm:grid-cols-4 sm:gap-2">
+          {orderSteps.map((step, index) => {
+            const Icon = step.icon;
+            const completed = index <= activeIndex;
+            const current = index === activeIndex;
+
+            return (
+              <div
+                key={step.status}
+                className={`flex items-center gap-3 rounded-2xl p-2 transition-all duration-500 sm:flex-col sm:bg-transparent sm:p-0 sm:text-center ${
+                  current ? "bg-green-50 sm:scale-105" : ""
+                }`}
+              >
+                <span
+                  className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 transition-all duration-500 ${
+                    completed
+                      ? "border-green-100 bg-green-700 text-white shadow-lg shadow-green-700/20"
+                      : "border-slate-100 bg-white text-slate-400"
+                  } ${current ? "ring-4 ring-lime-200" : ""}`}
+                >
+                  <Icon size={21} />
+                </span>
+                <div>
+                  <p className={`text-sm font-black ${completed ? "text-green-800" : "text-slate-400"}`}>
+                    {step.label}
+                  </p>
+                  {current && <p className="text-xs font-bold text-lime-700">Estado actual</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
