@@ -118,38 +118,28 @@ export async function POST(request: Request) {
     }
 
     if (action === "cancel") {
-      const { data: updatedOrder, error: updateError } = await supabaseAdmin
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", orderId)
-        .select("*")
-        .single();
+      const { data: updateResult, error: updateError } = await supabaseAdmin.rpc(
+        "cancel_customer_order_with_stock",
+        { p_order_id: orderId, p_phone: phone }
+      );
 
-      if (updateError || !updatedOrder) {
+      if (updateError) {
         return NextResponse.json(
           { error: updateError?.message || "No se pudo cancelar el pedido." },
+          { status: updateError.code === "42501" ? 403 : 409 }
+        );
+      }
+
+      const updatedOrder = Array.isArray(updateResult)
+        ? updateResult[0]
+        : updateResult;
+
+      if (!updatedOrder) {
+        return NextResponse.json(
+          { error: "No se pudo cancelar el pedido." },
           { status: 500 }
         );
       }
-// Devolver stock al inventario cuando el cliente cancela
-const orderItems = Array.isArray(order.items) ? order.items : [];
-
-for (const item of orderItems) {
-  const { data: product } = await supabaseAdmin
-    .from("products")
-    .select("stock")
-    .eq("id", item.id)
-    .single();
-
-  const currentStock = Number(product?.stock || 0);
-  const quantityToReturn = Number(item.quantity || 0);
-  const newStock = currentStock + quantityToReturn;
-
-  await supabaseAdmin
-    .from("products")
-    .update({ stock: newStock })
-    .eq("id", item.id);
-}
       await notifyWhatsAppNumbers(
         `❌ *Pedido cancelado por el cliente*
 
