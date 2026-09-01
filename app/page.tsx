@@ -113,7 +113,20 @@ export default function Home() {
 
   useEffect(() => {
     loadProducts();
+
+    const savedCart = window.localStorage.getItem("soltal-pet-cart");
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch {
+        window.localStorage.removeItem("soltal-pet-cart");
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("soltal-pet-cart", JSON.stringify(cart));
+  }, [cart]);
 
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -746,7 +759,7 @@ export default function Home() {
             </a>
 
             <a
-              href="#carrito"
+              href="/carrito"
               className="flex items-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-black text-white md:px-5 md:text-base"
             >
               <ShoppingCart size={18} />
@@ -1076,7 +1089,7 @@ estado de tu compra cuando quieras.
         )}
       </section>
 
-      <section id="carrito" className="mx-auto max-w-7xl px-4 py-16">
+      {false && <><section id="carrito" className="mx-auto max-w-7xl px-4 py-16">
         <div className="futuristic-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <h2 className="text-4xl font-black">Carrito</h2>
@@ -1255,7 +1268,7 @@ estado de tu compra cuando quieras.
             </div>
           </div>
         </div>
-      </section>
+      </section></>}
 
       {/* La consulta de pedidos vive ahora en /consultar-pedido para mantener
           la portada más corta y enfocada en la compra. */}
