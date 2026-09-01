@@ -739,7 +739,7 @@ export default function Home() {
             </a>
 
             <a
-              href="#consultar-pedido"
+              href="/consultar-pedido"
               className="hidden rounded-full bg-green-50 px-5 py-3 font-black text-green-800 md:block"
             >
               Consultar pedido
@@ -799,7 +799,7 @@ estado de tu compra cuando quieras.
               </a>
 
               <a
-                href="#consultar-pedido"
+                href="/consultar-pedido"
                 className="rounded-full bg-white px-8 py-4 font-black text-green-800 transition hover:bg-green-50"
               >
                 Consultar pedido
@@ -1257,7 +1257,9 @@ estado de tu compra cuando quieras.
         </div>
       </section>
 
-      <section id="consultar-pedido" className="mx-auto max-w-7xl px-4 py-16">
+      {/* La consulta de pedidos vive ahora en /consultar-pedido para mantener
+          la portada más corta y enfocada en la compra. */}
+      {orderStatusResult && <section id="consultar-pedido" className="mx-auto max-w-7xl px-4 py-16">
         <div className="futuristic-card rounded-[2.5rem] border border-green-100 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-green-700 p-3 text-white">
@@ -1498,7 +1500,7 @@ estado de tu compra cuando quieras.
             </div>
           )}
         </div>
-      </section>
+      </section>}
     </main>
   );
 }
