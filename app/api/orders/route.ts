@@ -5,13 +5,6 @@ import { notifyWhatsAppNumbers } from "@/lib/whatsapp";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type OrderItem = {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-};
-
 function escapeHtml(value: unknown) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -320,65 +313,35 @@ export async function POST(request: Request) {
     );
   }
 
-  const items: OrderItem[] = body.items;
-
-  for (const item of items) {
-    const { data: product, error } = await supabaseAdmin
-      .from("products")
-      .select("id, name, stock")
-      .eq("id", item.id)
-      .single();
-
-    if (error || !product) {
-      return NextResponse.json(
-        { error: `No se encontró el producto: ${item.name}` },
-        { status: 400 }
-      );
+  const { data: orderResult, error: orderError } = await supabaseAdmin.rpc(
+    "create_order_with_stock",
+    {
+      p_customer: body.customer,
+      p_items: body.items,
+      p_user_id: loggedUser?.id || null,
+      p_user_email: loggedUser?.email || body.customer?.email || null,
     }
-
-    if (Number(product.stock) < Number(item.quantity)) {
-      return NextResponse.json(
-        {
-          error: `No hay stock suficiente para ${product.name}. Stock disponible: ${product.stock}`,
-        },
-        { status: 400 }
-      );
-    }
-  }
-
-  const orderPayload = {
-    customer: body.customer,
-    items: body.items,
-    total: Number(body.total),
-    status: "received",
-    user_id: loggedUser?.id || null,
-    user_email: loggedUser?.email || body.customer?.email || null,
-  };
-
-  const { data: order, error: orderError } = await supabaseAdmin
-    .from("orders")
-    .insert(orderPayload)
-    .select()
-    .single();
+  );
 
   if (orderError) {
-    return NextResponse.json({ error: orderError.message }, { status: 500 });
+    const isConflict =
+      orderError.code === "P0001" ||
+      orderError.code === "P0002" ||
+      /stock|producto/i.test(orderError.message);
+
+    return NextResponse.json(
+      { error: orderError.message || "No se pudo crear el pedido." },
+      { status: isConflict ? 409 : 400 }
+    );
   }
 
-  for (const item of items) {
-    const { data: product } = await supabaseAdmin
-      .from("products")
-      .select("stock")
-      .eq("id", item.id)
-      .single();
+  const order = Array.isArray(orderResult) ? orderResult[0] : orderResult;
 
-    const currentStock = Number(product?.stock || 0);
-    const newStock = Math.max(0, currentStock - Number(item.quantity));
-
-    await supabaseAdmin
-      .from("products")
-      .update({ stock: newStock })
-      .eq("id", item.id);
+  if (!order) {
+    return NextResponse.json(
+      { error: "No se pudo crear el pedido." },
+      { status: 500 }
+    );
   }
 
   await sendInvoiceEmail(order);
