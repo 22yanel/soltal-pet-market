@@ -25,22 +25,37 @@ export async function PATCH(
     );
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("orders")
-    .update({ status: body.status })
-    .eq("id", Number(params.id))
-    .select("*")
-    .single();
+  const { data: updateResult, error } = await supabaseAdmin.rpc(
+    "update_order_status_with_stock",
+    {
+      p_order_id: Number(params.id),
+      p_new_status: body.status,
+    }
+  );
 
   if (error) {
+    const isConflict =
+      error.code === "P0001" ||
+      error.code === "P0002" ||
+      /stock|reactivar|producto/i.test(error.message);
+
     return NextResponse.json(
       { error: error.message },
       {
-        status: 500,
+        status: isConflict ? 409 : 400,
         headers: {
           "Cache-Control": "no-store",
         },
       }
+    );
+  }
+
+  const data = Array.isArray(updateResult) ? updateResult[0] : updateResult;
+
+  if (!data) {
+    return NextResponse.json(
+      { error: "No se pudo actualizar el pedido." },
+      { status: 500 }
     );
   }
 
@@ -53,4 +68,3 @@ export async function PATCH(
     }
   );
 }
-
